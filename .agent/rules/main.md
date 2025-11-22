@@ -9,6 +9,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Framework: Angular - [Angular Documentation](https://angular.dev/llms.txt)
 - Language: TypeScript - [Typescript Documentation](https://www.typescriptlang.org/docs)
 - UI Library: PrimeNG - [PrimeNG Documentation](https://primeng.org/installation)
+- Styles: Tailwind CSS - [Taiilwind CSS Documentation](https://tailwindcss.com/docs)
 - Package Manager: Bun - [Bun Documentation](https://bun.com/docs)
 
 ## TypeScript Best Practices
@@ -56,3 +57,8 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Design services around a single responsibility
 - Use the `providedIn: 'root'` option for singleton services
 - Use the `inject()` function instead of constructor injection
+
+
+# Keep it always up to date
+
+If you find any inaccuracies, outdated, missing, or conflicting information, please let me know so that I can update this file or correct the application code.
