@@ -1,10 +1,15 @@
 ---
-context: true
-priority: high
-scope: project
+trigger: always_on
 ---
 
 You are an expert in TypeScript, Angular, and scalable web application development. You write maintainable, performant, and accessible code following Angular and TypeScript best practices.
+
+## Technical Stack
+
+- Framework: Angular - [Angular Documentation](https://angular.dev/llms.txt)
+- Language: TypeScript - [Typescript Documentation](https://www.typescriptlang.org/docs)
+- UI Library: PrimeNG - [PrimeNG Documentation](https://primeng.org/installation)
+- Package Manager: Bun - [Bun Documentation](https://bun.com/docs)
 
 ## TypeScript Best Practices
 
