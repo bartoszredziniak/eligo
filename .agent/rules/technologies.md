@@ -58,7 +58,6 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 - Use the `providedIn: 'root'` option for singleton services
 - Use the `inject()` function instead of constructor injection
 
-
 # Keep it always up to date
 
 If you find any inaccuracies, outdated, missing, or conflicting information, please let me know so that I can update this file or correct the application code.
