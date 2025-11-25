@@ -13,7 +13,6 @@ import { CommonModule } from '@angular/common';
 
       <!-- Main Workspace (3 Columns) -->
       <div class="flex flex-1 overflow-hidden relative">
-        
         <!-- Col 1: Left Sidebar Slot -->
         <div class="flex-none w-64 border-r border-gray-200 bg-white z-40">
           <ng-content select="[sidebarLeft]" />
@@ -28,7 +27,6 @@ import { CommonModule } from '@angular/common';
         <main class="flex-1 relative overflow-hidden bg-gray-100">
           <ng-content />
         </main>
-
       </div>
 
       <!-- Footer Slot -->
@@ -38,6 +36,6 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UiLayout {}

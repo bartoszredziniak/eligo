@@ -15,7 +15,7 @@ import { CommonModule } from '@angular/common';
       <div class="flex-1 overflow-y-auto">
         <ng-content />
       </div>
-      
+
       <!-- Optional Footer Slot -->
       <div class="flex-none">
         <ng-content select="[footer]" />
@@ -23,6 +23,6 @@ import { CommonModule } from '@angular/common';
     </div>
   `,
   styles: [],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UiSidebar {}

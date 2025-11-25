@@ -4,6 +4,6 @@ import { ConfiguratorPage } from './containers/configurator-page/configurator-pa
 export const CONFIGURATOR_ROUTES: Routes = [
   {
     path: '',
-    component: ConfiguratorPage
-  }
+    component: ConfiguratorPage,
+  },
 ];

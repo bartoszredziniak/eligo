@@ -6,7 +6,7 @@ import { ButtonModule } from 'primeng/button';
   selector: 'eligo-root',
   imports: [RouterOutlet, ButtonModule],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   protected readonly title = signal('eligo');

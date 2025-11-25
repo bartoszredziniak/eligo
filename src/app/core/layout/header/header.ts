@@ -10,17 +10,18 @@ import { UiHeader } from '../../../shared/ui/ui-header/ui-header';
       <div start class="flex items-center gap-2">
         <span class="font-bold text-xl tracking-tight">Eligo</span>
       </div>
-      
+
       <div end>
-        <p-button 
-          icon="pi pi-question-circle" 
-          [text]="true" 
-          severity="secondary" 
-          ariaLabel="Help" />
+        <p-button
+          icon="pi pi-question-circle"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Help"
+        />
       </div>
     </eligo-ui-header>
   `,
   styles: [],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Header {}

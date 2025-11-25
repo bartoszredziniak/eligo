@@ -1,48 +1,89 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { InputTextModule } from 'primeng/inputtext';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { FormsModule } from '@angular/forms';
-import { SidebarSection } from '../../../shared/ui/sidebar-section/sidebar-section';
+import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
 import { UiSidebar } from '../../../shared/ui/ui-sidebar/ui-sidebar';
+import { DrawerService } from '../../services/drawer.service';
+import { ConfiguratorStateService } from '../../services/configurator-state.service';
+import { DrawerPropertiesForm } from './drawer-properties-form/drawer-properties-form';
+import { BoxPropertiesForm } from './box-properties-form/box-properties-form';
+import { BoxColor } from '../../models/drawer.models';
 
 @Component({
   selector: 'eligo-properties-sidebar',
-  imports: [CommonModule, InputTextModule, InputNumberModule, FormsModule, SidebarSection, UiSidebar],
+  imports: [UiSidebar, DrawerPropertiesForm, BoxPropertiesForm],
   template: `
     <eligo-ui-sidebar>
-      <eligo-sidebar-section title="Właściwości">
-        <div class="flex flex-col gap-4">
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-gray-600">Szerokość (mm)</label>
-            <p-inputNumber 
-              [ngModel]="drawerWidth()" 
-              (ngModelChange)="drawerWidthChange.emit($event)"
-              suffix=" mm" 
-              styleClass="w-full" 
-              class="w-full" />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <label class="text-sm text-gray-600">Głębokość (mm)</label>
-            <p-inputNumber 
-              [ngModel]="drawerDepth()" 
-              (ngModelChange)="drawerDepthChange.emit($event)"
-              suffix=" mm" 
-              styleClass="w-full" 
-              class="w-full" />
-          </div>
-        </div>
-      </eligo-sidebar-section>
+      @switch (viewMode()) {
+        @case ('DRAWER') {
+          <eligo-drawer-properties-form
+            [config]="drawerConfig()"
+            (widthChange)="updateDrawerWidth($event)"
+            (depthChange)="updateDrawerDepth($event)"
+            (heightChange)="updateDrawerHeight($event)"
+          />
+        }
+        @case ('BOX') {
+          @if (selectedBox(); as box) {
+            <eligo-box-properties-form
+              [box]="box"
+              (widthChange)="updateBoxWidth(box.id, $event)"
+              (depthChange)="updateBoxDepth(box.id, $event)"
+              (heightChange)="updateBoxHeight(box.id, $event)"
+              (colorChange)="updateBoxColor(box.id, $event)"
+              (deleteBox)="removeBox(box.id)"
+            />
+          }
+        }
+      }
     </eligo-ui-sidebar>
   `,
   styles: [],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class PropertiesSidebar {
-  drawerWidth = input.required<number>();
-  drawerDepth = input.required<number>();
-  
-  drawerWidthChange = output<number>();
-  drawerDepthChange = output<number>();
+  private readonly drawerService = inject(DrawerService);
+  private readonly stateService = inject(ConfiguratorStateService);
+
+  readonly drawerConfig = computed(() => this.drawerService.drawerConfig());
+  readonly selectedBox = computed(() => {
+    const selectedId = this.stateService.selectedBoxId();
+    if (!selectedId) return null;
+    return this.drawerService.boxes().find((b) => b.id === selectedId) || null;
+  });
+  readonly viewMode = this.stateService.activePropertiesView;
+
+  updateDrawerWidth(value: number) {
+    this.drawerService.updateDrawerConfig({ width: value });
+  }
+
+  updateDrawerDepth(value: number) {
+    this.drawerService.updateDrawerConfig({ depth: value });
+  }
+
+  updateDrawerHeight(value: number) {
+    this.drawerService.updateDrawerConfig({ height: value });
+  }
+
+  updateBoxWidth(id: string, value: number) {
+    this.drawerService.updateBox(id, { width: value });
+  }
+
+  updateBoxDepth(id: string, value: number) {
+    this.drawerService.updateBox(id, { depth: value });
+  }
+
+  updateBoxHeight(id: string, value: number) {
+    this.drawerService.updateBox(id, { height: value });
+  }
+
+  updateBoxColor(id: string, color: BoxColor) {
+    this.drawerService.updateBox(id, { color });
+  }
+
+  removeBox(id: string) {
+    this.drawerService.removeBox(id);
+    this.stateService.selectBox(null);
+  }
+
+  deselectBox() {
+    this.stateService.selectBox(null);
+  }
 }

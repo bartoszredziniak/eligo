@@ -10,13 +10,13 @@ import { ToolbarModule } from 'primeng/toolbar';
       <div class="p-toolbar-group-start">
         <ng-content select="[start]" />
       </div>
-      
+
       <div class="p-toolbar-group-end">
         <ng-content select="[end]" />
       </div>
     </p-toolbar>
   `,
   styles: [],
-  changeDetection: ChangeDetectionStrategy.OnPush
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class UiHeader {}
