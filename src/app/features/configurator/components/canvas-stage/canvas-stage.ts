@@ -16,6 +16,7 @@ import { InteractionManager } from '../../three/interaction.manager';
 import { DrawerService } from '../../../../core/services/drawer.service';
 import { ConfiguratorStateService } from '../../../../core/services/configurator-state.service';
 import { ThreeFactoryService } from '../../three/services/three-factory.service';
+import { DrawerConfig } from '../../../../core/models/drawer.models';
 
 @Component({
   selector: 'eligo-canvas-stage',
@@ -58,21 +59,16 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   private resizeObserver!: ResizeObserver;
 
   constructor() {
-    // Effect for Drawer Config changes
     effect(() => {
       const config = this.drawerService.drawerConfig();
       if (this.drawerVisualizer) {
         this.drawerVisualizer.update(config);
       }
-      if (this.interactionManager) {
-        this.interactionManager.updateDrawerDimensions(config.width, config.depth);
-      }
-      if (this.facade) {
-        this.facade.setControlsTarget(config.width / 2, 0, config.depth / 2);
+      if (this.interactionManager && this.facade) {
+        this.updateControlsForConfig(config);
       }
     });
 
-    // Effect for Boxes and Selection changes
     effect(() => {
       const boxes = this.drawerService.boxes();
       const selectedId = this.stateService.selectedBoxId();
@@ -91,83 +87,15 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
-    // Dispose visualizers first to clean up meshes/geometries
     if (this.drawerVisualizer) {
       this.drawerVisualizer.dispose();
     }
     if (this.boxVisualizer) {
       this.boxVisualizer.dispose();
     }
-    // Then dispose facade (renderer, scene, controls)
     if (this.facade) {
       this.facade.dispose();
     }
-  }
-
-  private initThree(): void {
-    const container = this.canvasContainer.nativeElement;
-
-    // 1. Initialize Facade
-    this.facade = new ThreeSceneFacade(container);
-    this.facade.init();
-
-    const scene = this.facade.getScene();
-    const camera = this.facade.getCamera();
-
-    // 2. Initialize Visualizers
-    this.drawerVisualizer = new DrawerVisualizer(scene, this.factoryService);
-    this.boxVisualizer = new BoxVisualizer(scene, this.factoryService);
-
-    // 3. Initialize Interaction Manager
-    this.interactionManager = new InteractionManager(camera, scene);
-
-    // Subscribe to selection events
-    this.interactionManager.boxSelected$.subscribe((boxId) => {
-      this.stateService.selectBox(boxId);
-    });
-
-    // Subscribe to drag events
-    this.interactionManager.boxDrag$.subscribe((event) => {
-      // We can debounce this if performance is an issue, but for now direct update is fine
-      // or we can update a local signal and commit on pointer up?
-      // For smooth 3D update, we need to update the store which updates the signal which updates the visualizer.
-      // This might be too slow for 60fps drag. 
-      // Ideally visualizer updates mesh directly during drag, and we commit to store on up.
-      // But for simplicity let's try direct update first.
-      this.drawerService.updateBox(event.id, { x: event.x, y: event.y });
-    });
-
-    this.interactionManager.dragStart$.subscribe(() => {
-      this.facade.enableControls(false);
-    });
-
-    this.interactionManager.dragEnd$.subscribe(() => {
-      this.facade.enableControls(true);
-    });
-
-    // Initial render
-    this.drawerVisualizer.update(this.drawerService.drawerConfig());
-    this.boxVisualizer.update(
-      this.drawerService.boxes(),
-      this.stateService.selectedBoxId()
-    );
-    
-    // Update interaction manager with dimensions
-    const config = this.drawerService.drawerConfig();
-    this.interactionManager.updateDrawerDimensions(config.width, config.depth);
-    
-    // Set initial controls target
-    this.facade.setControlsTarget(config.width / 2, 0, config.depth / 2);
-  }
-
-  private initResizeObserver(): void {
-    this.resizeObserver = new ResizeObserver((entries) => {
-      for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        this.facade.resize(width, height);
-      }
-    });
-    this.resizeObserver.observe(this.canvasContainer.nativeElement);
   }
 
   onMouseDown(event: MouseEvent): void {
@@ -182,5 +110,63 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
   onMouseUp(): void {
     this.interactionManager.onPointerUp();
+  }
+
+  private initThree(): void {
+    const container = this.canvasContainer.nativeElement;
+
+    this.facade = new ThreeSceneFacade(container);
+    this.facade.init();
+
+    const scene = this.facade.getScene();
+    const camera = this.facade.getCamera();
+
+    this.drawerVisualizer = new DrawerVisualizer(scene, this.factoryService);
+    this.boxVisualizer = new BoxVisualizer(scene, this.factoryService);
+    this.interactionManager = new InteractionManager(camera, scene);
+
+    this.setupInteractionSubscriptions();
+    this.performInitialRender();
+  }
+
+  private setupInteractionSubscriptions(): void {
+    this.interactionManager.boxSelected$.subscribe((boxId) => {
+      this.stateService.selectBox(boxId);
+    });
+
+    this.interactionManager.boxDrag$.subscribe((event) => {
+      this.drawerService.updateBox(event.id, { x: event.x, y: event.y });
+    });
+
+    this.interactionManager.dragStart$.subscribe(() => {
+      this.facade.enableControls(false);
+    });
+
+    this.interactionManager.dragEnd$.subscribe(() => {
+      this.facade.enableControls(true);
+    });
+  }
+
+  private performInitialRender(): void {
+    const config = this.drawerService.drawerConfig();
+
+    this.drawerVisualizer.update(config);
+    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId());
+    this.updateControlsForConfig(config);
+  }
+
+  private updateControlsForConfig(config: DrawerConfig): void {
+    this.interactionManager.updateDrawerDimensions(config.width, config.depth);
+    this.facade.setControlsTarget(config.width / 2, 0, config.depth / 2);
+  }
+
+  private initResizeObserver(): void {
+    this.resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        this.facade.resize(width, height);
+      }
+    });
+    this.resizeObserver.observe(this.canvasContainer.nativeElement);
   }
 }

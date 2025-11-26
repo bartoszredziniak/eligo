@@ -1,6 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import * as THREE from 'three';
 import { BoxColor, BOX_COLORS } from '../../../../core/models/drawer.models';
+import { BOX_WALL_THICKNESS } from '../constants';
 
 @Injectable({
   providedIn: 'root',
@@ -37,41 +38,40 @@ export class ThreeFactoryService implements OnDestroy {
   createHollowBoxGroup(width: number, height: number, depth: number, color: BoxColor): THREE.Group {
     const group = new THREE.Group();
     const material = this.getBoxMaterial(color);
-    const t = 2;
 
-    // Floor
-    const floor = new THREE.Mesh(new THREE.BoxGeometry(width, t, depth), material);
-    floor.position.set(0, t/2, 0);
-    floor.castShadow = true;
-    floor.receiveShadow = true;
+    const floor = this.createWallMesh(
+      new THREE.BoxGeometry(width, BOX_WALL_THICKNESS, depth),
+      material
+    );
+    floor.position.set(0, BOX_WALL_THICKNESS / 2, 0);
     group.add(floor);
 
-    // Left
-    const left = new THREE.Mesh(new THREE.BoxGeometry(t, height, depth), material);
-    left.position.set(-width/2 + t/2, height/2, 0);
-    left.castShadow = true;
-    left.receiveShadow = true;
+    const left = this.createWallMesh(
+      new THREE.BoxGeometry(BOX_WALL_THICKNESS, height, depth),
+      material
+    );
+    left.position.set(-width / 2 + BOX_WALL_THICKNESS / 2, height / 2, 0);
     group.add(left);
 
-    // Right
-    const right = new THREE.Mesh(new THREE.BoxGeometry(t, height, depth), material);
-    right.position.set(width/2 - t/2, height/2, 0);
-    right.castShadow = true;
-    right.receiveShadow = true;
+    const right = this.createWallMesh(
+      new THREE.BoxGeometry(BOX_WALL_THICKNESS, height, depth),
+      material
+    );
+    right.position.set(width / 2 - BOX_WALL_THICKNESS / 2, height / 2, 0);
     group.add(right);
 
-    // Front
-    const front = new THREE.Mesh(new THREE.BoxGeometry(width - 2*t, height, t), material);
-    front.position.set(0, height/2, depth/2 - t/2);
-    front.castShadow = true;
-    front.receiveShadow = true;
+    const front = this.createWallMesh(
+      new THREE.BoxGeometry(width - 2 * BOX_WALL_THICKNESS, height, BOX_WALL_THICKNESS),
+      material
+    );
+    front.position.set(0, height / 2, depth / 2 - BOX_WALL_THICKNESS / 2);
     group.add(front);
 
-    // Back
-    const back = new THREE.Mesh(new THREE.BoxGeometry(width - 2*t, height, t), material);
-    back.position.set(0, height/2, -depth/2 + t/2);
-    back.castShadow = true;
-    back.receiveShadow = true;
+    const back = this.createWallMesh(
+      new THREE.BoxGeometry(width - 2 * BOX_WALL_THICKNESS, height, BOX_WALL_THICKNESS),
+      material
+    );
+    back.position.set(0, height / 2, -depth / 2 + BOX_WALL_THICKNESS / 2);
     group.add(back);
 
     return group;
@@ -100,5 +100,12 @@ export class ThreeFactoryService implements OnDestroy {
   ngOnDestroy(): void {
     this.materials.forEach((material) => material.dispose());
     this.materials.clear();
+  }
+
+  private createWallMesh(geometry: THREE.BoxGeometry, material: THREE.Material): THREE.Mesh {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    return mesh;
   }
 }

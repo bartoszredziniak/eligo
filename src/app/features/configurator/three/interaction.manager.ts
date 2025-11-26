@@ -1,10 +1,11 @@
 import * as THREE from 'three';
 import { Subject } from 'rxjs';
+import { USER_DATA_KEYS } from './constants';
 
 export class InteractionManager {
   private raycaster = new THREE.Raycaster();
   private mouse = new THREE.Vector2();
-  private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); // Floor plane at y=0
+  private plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 
   private _boxSelected = new Subject<string | null>();
   boxSelected$ = this._boxSelected.asObservable();
@@ -28,7 +29,7 @@ export class InteractionManager {
     private readonly scene: THREE.Scene
   ) {}
 
-  updateDrawerDimensions(width: number, depth: number) {
+  updateDrawerDimensions(width: number, depth: number): void {
     this.drawerDimensions = { width, depth };
   }
 
@@ -36,39 +37,11 @@ export class InteractionManager {
     this.updateMouse(event, rect);
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
-    let selectedBoxId: string | null = null;
-    let intersectionPoint: THREE.Vector3 | null = null;
-    let boxObject: THREE.Object3D | null = null;
+    const { boxId, boxObject, intersectionPoint } = this.findBoxByRaycast();
 
-    for (const intersect of intersects) {
-      let object: THREE.Object3D | null = intersect.object;
-      while (object) {
-        if (object.userData && object.userData['boxId']) {
-          selectedBoxId = object.userData['boxId'];
-          boxObject = object;
-          intersectionPoint = intersect.point;
-          break;
-        }
-        object = object.parent;
-      }
-      if (selectedBoxId) break;
-    }
-
-    if (selectedBoxId && boxObject && intersectionPoint) {
-      this.isDragging = true;
-      this.draggedBoxId = selectedBoxId;
-      this._dragStart.next();
-      
-      // Calculate offset from box center to intersection point
-      // We need the box position in world space
-      const boxPos = new THREE.Vector3();
-      boxObject.getWorldPosition(boxPos);
-      
-      // We are dragging on XZ plane
-      this.dragOffset.copy(boxPos).sub(intersectionPoint);
-      
-      this._boxSelected.next(selectedBoxId);
+    if (boxId && boxObject && intersectionPoint) {
+      this.startDrag(boxId, boxObject, intersectionPoint);
+      this._boxSelected.next(boxId);
     } else {
       this._boxSelected.next(null);
     }
@@ -81,44 +54,21 @@ export class InteractionManager {
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
     const target = new THREE.Vector3();
-    if (this.raycaster.ray.intersectPlane(this.plane, target)) {
-      // Apply offset
-      target.add(this.dragOffset);
+    if (!this.raycaster.ray.intersectPlane(this.plane, target)) return;
 
-      // Clamp to drawer dimensions
-      // Box position is top-left corner (based on visualizer/pool logic)
-      // But wait, in pool we set position: x + width/2.
-      // So the mesh position IS the center.
-      // BUT the data model (Box) stores x,y as top-left?
-      // Let's check BoxMeshPool.updateMesh:
-      // mesh.position.set(box.x + box.width / 2, ...)
-      // So box.x = mesh.position.x - box.width / 2
-      
-      // We need to know the box dimensions to clamp correctly.
-      // We can get them from the dragged object (it's a mesh with scale = dimensions)
-      const mesh = this.scene.children.find(c => c.userData && c.userData['boxId'] === this.draggedBoxId) as THREE.Mesh;
-      if (!mesh) return;
-      
-      // We used to use scale, but now we use userData because meshes are not scaled (they are groups with fixed geometry)
-      const width = mesh.userData['width'] || mesh.scale.x;
-      const depth = mesh.userData['depth'] || mesh.scale.z;
-      
-      // Calculate proposed Top-Left X/Y
-      let newX = target.x - width / 2;
-      let newY = target.z - depth / 2;
+    target.add(this.dragOffset);
 
-      // Clamp
-      // 0 <= x <= drawerWidth - boxWidth
-      newX = Math.max(0, Math.min(newX, this.drawerDimensions.width - width));
-      newY = Math.max(0, Math.min(newY, this.drawerDimensions.depth - depth));
+    const mesh = this.findMeshById(this.draggedBoxId);
+    if (!mesh) return;
 
-      // Emit new Top-Left coordinates
-      this._boxDrag.next({
-        id: this.draggedBoxId,
-        x: Math.round(newX),
-        y: Math.round(newY)
-      });
-    }
+    const { width, depth } = this.getBoxDimensions(mesh);
+    const clampedPosition = this.clampToDrawer(target, width, depth);
+
+    this._boxDrag.next({
+      id: this.draggedBoxId,
+      x: Math.round(clampedPosition.x),
+      y: Math.round(clampedPosition.y),
+    });
   }
 
   onPointerUp(): void {
@@ -127,6 +77,71 @@ export class InteractionManager {
       this.draggedBoxId = null;
       this._dragEnd.next();
     }
+  }
+
+  private findBoxByRaycast(): {
+    boxId: string | null;
+    boxObject: THREE.Object3D | null;
+    intersectionPoint: THREE.Vector3 | null;
+  } {
+    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+
+    for (const intersect of intersects) {
+      let object: THREE.Object3D | null = intersect.object;
+      while (object) {
+        if (object.userData?.[USER_DATA_KEYS.BOX_ID]) {
+          return {
+            boxId: object.userData[USER_DATA_KEYS.BOX_ID],
+            boxObject: object,
+            intersectionPoint: intersect.point,
+          };
+        }
+        object = object.parent;
+      }
+    }
+
+    return { boxId: null, boxObject: null, intersectionPoint: null };
+  }
+
+  private findMeshById(id: string): THREE.Object3D | null {
+    return this.scene.children.find(
+      (c) => c.userData?.[USER_DATA_KEYS.BOX_ID] === id
+    ) || null;
+  }
+
+  private getBoxDimensions(mesh: THREE.Object3D): { width: number; depth: number } {
+    return {
+      width: mesh.userData[USER_DATA_KEYS.WIDTH] || mesh.scale.x,
+      depth: mesh.userData[USER_DATA_KEYS.DEPTH] || mesh.scale.z,
+    };
+  }
+
+  private startDrag(
+    boxId: string,
+    boxObject: THREE.Object3D,
+    intersectionPoint: THREE.Vector3
+  ): void {
+    this.isDragging = true;
+    this.draggedBoxId = boxId;
+    this._dragStart.next();
+
+    const boxPos = new THREE.Vector3();
+    boxObject.getWorldPosition(boxPos);
+    this.dragOffset.copy(boxPos).sub(intersectionPoint);
+  }
+
+  private clampToDrawer(
+    target: THREE.Vector3,
+    width: number,
+    depth: number
+  ): { x: number; y: number } {
+    const topLeftX = target.x - width / 2;
+    const topLeftY = target.z - depth / 2;
+
+    return {
+      x: Math.max(0, Math.min(topLeftX, this.drawerDimensions.width - width)),
+      y: Math.max(0, Math.min(topLeftY, this.drawerDimensions.depth - depth)),
+    };
   }
 
   private updateMouse(event: MouseEvent, rect: DOMRect): void {
