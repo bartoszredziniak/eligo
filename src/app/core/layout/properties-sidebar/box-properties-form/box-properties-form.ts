@@ -12,6 +12,31 @@ import { Box, BOX_COLORS, BoxColor } from '../../../models/drawer.models';
   template: `
     <eligo-sidebar-section title="Edycja Pudełka">
       <div class="flex flex-col gap-4">
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex flex-col gap-1">
+            <label for="box-x" class="text-sm text-gray-600">Pozycja X (mm)</label>
+            <p-inputNumber
+              inputId="box-x"
+              [ngModel]="box().x"
+              (ngModelChange)="xChange.emit($event ?? 0)"
+              suffix=" mm"
+              styleClass="w-full"
+              class="w-full"
+            />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label for="box-y" class="text-sm text-gray-600">Pozycja Y (mm)</label>
+            <p-inputNumber
+              inputId="box-y"
+              [ngModel]="box().y"
+              (ngModelChange)="yChange.emit($event ?? 0)"
+              suffix=" mm"
+              styleClass="w-full"
+              class="w-full"
+            />
+          </div>
+        </div>
+
         <div class="flex flex-col gap-1">
           <label for="box-width" class="text-sm text-gray-600">Szerokość (mm)</label>
           <p-inputNumber
@@ -79,6 +104,8 @@ export class BoxPropertiesForm {
 
   readonly availableColors = BOX_COLORS;
 
+  xChange = output<number>();
+  yChange = output<number>();
   widthChange = output<number>();
   depthChange = output<number>();
   heightChange = output<number>();
