@@ -55,23 +55,62 @@ export class BoxMeshPool {
   }
 
   private updateMesh(mesh: THREE.Mesh, box: Box, isSelected: boolean): void {
-    // Optimization: Use scaling instead of recreating geometry
-    // The base geometry should be 1x1x1 (created in factory)
+    // We cannot use scaling for hollow boxes because wall thickness would scale.
+    // We must recreate the object if dimensions change.
+    // However, checking if dimensions changed is optimization.
+    // For now, let's just recreate it or update it.
     
-    mesh.scale.set(box.width, box.height, box.depth);
+    // Since we are using a Group now (returned as Mesh from factory), we can't just set scale.
+    // Actually, we should probably replace the object in the scene?
+    // But BoxMeshPool manages a pool of objects.
     
-    mesh.material = this.factory.getBoxMaterial(box.color);
+    // If we want to keep the pool working, we need to be able to update the geometry of the existing object.
+    // But the existing object is a Group of 5 meshes.
+    // Updating 5 geometries is tedious.
+    
+    // Simpler approach for now:
+    // Dispose the old children and create new ones.
+    
+    const group = mesh as unknown as THREE.Group;
+    
+    // Clear existing children (except highlight if we want to keep it separate, but highlight is also a child)
+    // Actually highlight is added to the mesh.
+    
+    // Let's remove all children that are parts of the box.
+    // We can tag them? Or just clear all and re-add highlight.
+    
+    // Dispose old geometries
+    group.children.forEach(c => {
+        if (c.name !== 'highlight' && (c as THREE.Mesh).geometry) {
+            (c as THREE.Mesh).geometry.dispose();
+        }
+    });
+    
+    // Remove all children
+    group.clear();
+    
+    // Re-create parts
+    // We can use the factory to create a new group and steal its children.
+    const newGroup = this.factory.createHollowBoxGroup(box.width, box.height, box.depth, box.color);
+    
+    while(newGroup.children.length > 0) {
+        const child = newGroup.children[0];
+        group.add(child);
+    }
     
     // Position
-    // Since geometry is 1x1x1 centered at 0,0,0:
-    // - Scaling expands it from center.
-    // - We need to position the center correctly.
-    
-    mesh.position.set(
+    // The group pivot is at 0,0,0 (center of box floor).
+    // We need to position it at box.x + width/2, 0, box.y + depth/2
+    group.position.set(
       box.x + box.width / 2,
-      box.height / 2, // On the floor
+      0, // Pivot is at bottom
       box.y + box.depth / 2
     );
+    
+    // Store dimensions in userData for InteractionManager
+    group.userData['boxId'] = box.id;
+    group.userData['width'] = box.width;
+    group.userData['depth'] = box.depth;
 
     // Highlight
     this.handleHighlight(mesh, box, isSelected);
@@ -93,11 +132,13 @@ export class BoxMeshPool {
 
     if (isSelected) {
       // Highlight needs to match the box dimensions.
-      // Since the parent mesh is scaled, the child (highlight) will inherit the scale!
-      // So we should create a 1x1x1 highlight and let it be scaled by parent.
+      // Since the parent mesh is NOT scaled (scale is 1,1,1), we need to create highlight with actual dimensions.
       
-      const highlight = this.factory.createSelectionHighlight(1, 1, 1);
+      const highlight = this.factory.createSelectionHighlight(box.width, box.height, box.depth);
       highlight.name = 'highlight';
+      // Center the highlight. Box pivot is bottom-center.
+      // Highlight geometry is centered.
+      highlight.position.set(0, box.height / 2, 0);
       mesh.add(highlight);
     }
   }

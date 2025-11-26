@@ -41,7 +41,7 @@ export class DrawerVisualizer {
     const thickness = 16; // 16mm walls
 
     // Back Wall
-    const backWall = this.factory.createDrawerWall(config.width, config.height, thickness);
+    const backWall = this.factory.createDrawerWall(config.width + 2 * thickness, config.height, thickness);
     backWall.position.set(config.width / 2, config.height / 2, -thickness / 2);
     this.walls.add(backWall);
 
@@ -56,7 +56,7 @@ export class DrawerVisualizer {
     this.walls.add(rightWall);
 
     // Front Wall
-    const frontWall = this.factory.createDrawerWall(config.width, config.height, thickness);
+    const frontWall = this.factory.createDrawerWall(config.width + 2 * thickness, config.height, thickness);
     frontWall.position.set(config.width / 2, config.height / 2, config.depth + thickness / 2);
     this.walls.add(frontWall);
 

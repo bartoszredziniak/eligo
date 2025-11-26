@@ -12,6 +12,12 @@ export class InteractionManager {
   private _boxDrag = new Subject<{ id: string; x: number; y: number }>();
   boxDrag$ = this._boxDrag.asObservable();
 
+  private _dragStart = new Subject<void>();
+  dragStart$ = this._dragStart.asObservable();
+
+  private _dragEnd = new Subject<void>();
+  dragEnd$ = this._dragEnd.asObservable();
+
   private isDragging = false;
   private draggedBoxId: string | null = null;
   private dragOffset = new THREE.Vector3();
@@ -52,6 +58,7 @@ export class InteractionManager {
     if (selectedBoxId && boxObject && intersectionPoint) {
       this.isDragging = true;
       this.draggedBoxId = selectedBoxId;
+      this._dragStart.next();
       
       // Calculate offset from box center to intersection point
       // We need the box position in world space
@@ -92,8 +99,9 @@ export class InteractionManager {
       const mesh = this.scene.children.find(c => c.userData && c.userData['boxId'] === this.draggedBoxId) as THREE.Mesh;
       if (!mesh) return;
       
-      const width = mesh.scale.x;
-      const depth = mesh.scale.z;
+      // We used to use scale, but now we use userData because meshes are not scaled (they are groups with fixed geometry)
+      const width = mesh.userData['width'] || mesh.scale.x;
+      const depth = mesh.userData['depth'] || mesh.scale.z;
       
       // Calculate proposed Top-Left X/Y
       let newX = target.x - width / 2;
@@ -114,8 +122,11 @@ export class InteractionManager {
   }
 
   onPointerUp(): void {
-    this.isDragging = false;
-    this.draggedBoxId = null;
+    if (this.isDragging) {
+      this.isDragging = false;
+      this.draggedBoxId = null;
+      this._dragEnd.next();
+    }
   }
 
   private updateMouse(event: MouseEvent, rect: DOMRect): void {

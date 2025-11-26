@@ -30,12 +30,51 @@ export class ThreeFactoryService implements OnDestroy {
   }
 
   createBoxMesh(width: number, height: number, depth: number, color: BoxColor): THREE.Mesh {
-    const geometry = new THREE.BoxGeometry(width, height, depth);
+    const group = this.createHollowBoxGroup(width, height, depth, color);
+    return group as unknown as THREE.Mesh;
+  }
+
+  createHollowBoxGroup(width: number, height: number, depth: number, color: BoxColor): THREE.Group {
+    const group = new THREE.Group();
     const material = this.getBoxMaterial(color);
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    return mesh;
+    const t = 2;
+
+    // Floor
+    const floor = new THREE.Mesh(new THREE.BoxGeometry(width, t, depth), material);
+    floor.position.set(0, t/2, 0);
+    floor.castShadow = true;
+    floor.receiveShadow = true;
+    group.add(floor);
+
+    // Left
+    const left = new THREE.Mesh(new THREE.BoxGeometry(t, height, depth), material);
+    left.position.set(-width/2 + t/2, height/2, 0);
+    left.castShadow = true;
+    left.receiveShadow = true;
+    group.add(left);
+
+    // Right
+    const right = new THREE.Mesh(new THREE.BoxGeometry(t, height, depth), material);
+    right.position.set(width/2 - t/2, height/2, 0);
+    right.castShadow = true;
+    right.receiveShadow = true;
+    group.add(right);
+
+    // Front
+    const front = new THREE.Mesh(new THREE.BoxGeometry(width - 2*t, height, t), material);
+    front.position.set(0, height/2, depth/2 - t/2);
+    front.castShadow = true;
+    front.receiveShadow = true;
+    group.add(front);
+
+    // Back
+    const back = new THREE.Mesh(new THREE.BoxGeometry(width - 2*t, height, t), material);
+    back.position.set(0, height/2, -depth/2 + t/2);
+    back.castShadow = true;
+    back.receiveShadow = true;
+    group.add(back);
+
+    return group;
   }
 
   getBoxMaterial(color: BoxColor): THREE.Material {

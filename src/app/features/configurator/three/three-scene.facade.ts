@@ -52,6 +52,19 @@ export class ThreeSceneFacade {
     this.controls.maxDistance = 5000;
   }
 
+  setControlsTarget(x: number, y: number, z: number): void {
+    if (this.controls) {
+      this.controls.target.set(x, y, z);
+      this.controls.update();
+    }
+  }
+
+  enableControls(enabled: boolean): void {
+    if (this.controls) {
+      this.controls.enabled = enabled;
+    }
+  }
+
   private initLights(): void {
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     this.scene.add(ambientLight);

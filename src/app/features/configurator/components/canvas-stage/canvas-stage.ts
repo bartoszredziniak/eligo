@@ -67,6 +67,9 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       if (this.interactionManager) {
         this.interactionManager.updateDrawerDimensions(config.width, config.depth);
       }
+      if (this.facade) {
+        this.facade.setControlsTarget(config.width / 2, 0, config.depth / 2);
+      }
     });
 
     // Effect for Boxes and Selection changes
@@ -134,6 +137,14 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       this.drawerService.updateBox(event.id, { x: event.x, y: event.y });
     });
 
+    this.interactionManager.dragStart$.subscribe(() => {
+      this.facade.enableControls(false);
+    });
+
+    this.interactionManager.dragEnd$.subscribe(() => {
+      this.facade.enableControls(true);
+    });
+
     // Initial render
     this.drawerVisualizer.update(this.drawerService.drawerConfig());
     this.boxVisualizer.update(
@@ -144,6 +155,9 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     // Update interaction manager with dimensions
     const config = this.drawerService.drawerConfig();
     this.interactionManager.updateDrawerDimensions(config.width, config.depth);
+    
+    // Set initial controls target
+    this.facade.setControlsTarget(config.width / 2, 0, config.depth / 2);
   }
 
   private initResizeObserver(): void {
