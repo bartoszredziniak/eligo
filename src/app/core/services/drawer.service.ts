@@ -2,6 +2,7 @@ import { Injectable, signal, computed, inject } from '@angular/core';
 import { Box, DrawerConfig } from '../models/drawer.models';
 import { CostCalculatorService } from './cost-calculator.service';
 import { GridService } from './grid.service';
+import { CollisionService } from './collision.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,6 +10,7 @@ import { GridService } from './grid.service';
 export class DrawerService {
   private readonly costCalculator = inject(CostCalculatorService);
   private readonly gridService = inject(GridService);
+  private readonly collisionService = inject(CollisionService);
 
   // Initial state
   private readonly _drawerConfig = signal<DrawerConfig>({
@@ -22,6 +24,10 @@ export class DrawerService {
   // Public signals
   readonly drawerConfig = this._drawerConfig.asReadonly();
   readonly boxes = this._boxes.asReadonly();
+
+  readonly collisions = computed(() => {
+    return this.collisionService.findCollisions(this._boxes());
+  });
 
   readonly totalWeight = computed(() => {
     const boxes = this._boxes();

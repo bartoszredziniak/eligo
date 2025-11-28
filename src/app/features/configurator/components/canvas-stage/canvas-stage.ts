@@ -78,8 +78,9 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     effect(() => {
       const boxes = this.drawerService.boxes();
       const selectedId = this.stateService.selectedBoxId();
+      const collisions = this.drawerService.collisions();
       if (this.boxVisualizer) {
-        this.boxVisualizer.update(boxes, selectedId);
+        this.boxVisualizer.update(boxes, selectedId, collisions);
       }
     });
   }
@@ -160,7 +161,11 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     this.gridService.updateDrawerDimensions(config.width, config.depth);
 
     this.drawerVisualizer.update(config);
-    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId());
+    this.boxVisualizer.update(
+      this.drawerService.boxes(),
+      this.stateService.selectedBoxId(),
+      this.drawerService.collisions()
+    );
     this.updateControlsForConfig(config);
   }
 

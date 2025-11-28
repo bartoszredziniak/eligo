@@ -6,10 +6,10 @@ import { AccordionModule } from 'primeng/accordion';
   selector: 'eligo-sidebar-section',
   imports: [CommonModule, AccordionModule],
   template: `
-    <p-accordion [value]="'0'">
+    <p-accordion [value]="defaultExpanded() ? '0' : ''">
       <p-accordion-panel value="0">
-        <p-accordion-header>
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider w-full">
+        <p-accordion-header [class]="headerClass()">
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider w-full" [class]="headerClass()">
             {{ title() }}
           </span>
         </p-accordion-header>
@@ -61,4 +61,6 @@ import { AccordionModule } from 'primeng/accordion';
 export class SidebarSection {
   title = input.required<string>();
   collapsible = input(true);
+  defaultExpanded = input(false);
+  headerClass = input('');
 }

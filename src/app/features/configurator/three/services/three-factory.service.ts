@@ -91,6 +91,19 @@ export class ThreeFactoryService implements OnDestroy {
     return this.materials.get(color)!;
   }
 
+  getErrorMaterial(): THREE.Material {
+    const key = 'error-material';
+    if (!this.materials.has(key)) {
+      const material = new THREE.MeshStandardMaterial({
+        color: 0xff0000,
+        roughness: 0.7,
+        metalness: 0.1,
+      });
+      this.materials.set(key, material);
+    }
+    return this.materials.get(key)!;
+  }
+
   createSelectionHighlight(width: number, height: number, depth: number): THREE.LineSegments {
     const geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(width, height, depth));
     const material = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 2 });

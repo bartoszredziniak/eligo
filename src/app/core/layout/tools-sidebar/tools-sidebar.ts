@@ -7,9 +7,11 @@ import { ConfiguratorStateService } from '../../services/configurator-state.serv
 import { DrawerService } from '../../services/drawer.service';
 import { BOX_COLORS } from '../../models/drawer.models';
 
+import { ValidationErrorsPanel } from '../../../features/configurator/components/validation-errors-panel/validation-errors-panel';
+
 @Component({
   selector: 'eligo-tools-sidebar',
-  imports: [CommonModule, ButtonModule, UiSidebar, SidebarSection],
+  imports: [CommonModule, ButtonModule, UiSidebar, SidebarSection, ValidationErrorsPanel],
   template: `
     <eligo-ui-sidebar>
       <eligo-sidebar-section title="Narzędzia">
@@ -50,7 +52,12 @@ import { BOX_COLORS } from '../../models/drawer.models';
                 [class.bg-blue-50]="stateService.selectedBoxId() === box.id"
                 (click)="stateService.selectBox(box.id)"
               >
-                <span class="text-sm font-medium">Pudełko</span>
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium">Pudełko</span>
+                  @if (drawerService.collisions().has(box.id)) {
+                    <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
+                  }
+                </div>
                 <div
                   class="w-4 h-4 rounded border"
                   [style.background-color]="getBoxColorHex(box.color)"
@@ -60,6 +67,8 @@ import { BOX_COLORS } from '../../models/drawer.models';
           }
         </div>
       </eligo-sidebar-section>
+
+      <eligo-validation-errors-panel [count]="drawerService.collisions().size" />
     </eligo-ui-sidebar>
   `,
   styles: [],
