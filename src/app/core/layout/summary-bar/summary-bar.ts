@@ -10,7 +10,10 @@ import { UiBottomBar } from '../../../shared/ui/ui-bottom-bar/ui-bottom-bar';
     <eligo-ui-bottom-bar>
       <div class="flex flex-col">
         <span class="text-xs text-gray-500 uppercase tracking-wide">Szacowany koszt</span>
-        <span class="text-2xl font-bold text-gray-900"> {{ price() | number: '1.2-2' }} PLN </span>
+        <div class="flex items-baseline gap-2">
+          <span class="text-2xl font-bold text-gray-900"> {{ price() | number: '1.2-2' }} PLN </span>
+          <span class="text-sm text-gray-500"> ({{ weight() | number: '1.0-0' }}g) </span>
+        </div>
       </div>
 
       <p-button
@@ -26,5 +29,6 @@ import { UiBottomBar } from '../../../shared/ui/ui-bottom-bar/ui-bottom-bar';
 })
 export class SummaryBar {
   price = input.required<number>();
+  weight = input.required<number>();
   generateOrder = output<void>();
 }

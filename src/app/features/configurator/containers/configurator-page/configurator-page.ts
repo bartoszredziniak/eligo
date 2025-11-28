@@ -35,7 +35,11 @@ import { ConfiguratorStateService } from '../../../../core/services/configurator
       <eligo-canvas-stage />
 
       <!-- Footer -->
-      <eligo-summary-bar footer [price]="0" />
+      <eligo-summary-bar
+        footer
+        [price]="drawerService.totalPrice()"
+        [weight]="drawerService.totalWeight()"
+      />
     </eligo-ui-layout>
   `,
   styles: [],
