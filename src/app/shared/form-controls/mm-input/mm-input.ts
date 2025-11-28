@@ -1,0 +1,41 @@
+import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { FormsModule } from '@angular/forms';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { InputGroupModule } from 'primeng/inputgroup';
+import { InputGroupAddonModule } from 'primeng/inputgroupaddon';
+
+/**
+ * Reusable component for millimeter inputs with consistent styling and unit display
+ */
+@Component({
+  selector: 'eligo-mm-input',
+  imports: [FormsModule, InputNumberModule, InputGroupModule, InputGroupAddonModule],
+  template: `
+    <p-inputGroup>
+      <p-inputNumber
+        [inputId]="inputId()"
+        [ngModel]="value()"
+        (ngModelChange)="valueChange.emit($event ?? 0)"
+        [min]="min()"
+        [max]="max()"
+        [step]="step()"
+        [placeholder]="placeholder()"
+        styleClass="w-full"
+        class="flex-1"
+      />
+      <p-inputGroupAddon>mm</p-inputGroupAddon>
+    </p-inputGroup>
+  `,
+  styles: [],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class MmInput {
+  inputId = input.required<string>();
+  value = input.required<number>();
+  min = input<number>(0);
+  max = input<number | undefined>(undefined);
+  step = input<number>(1);
+  placeholder = input<string>('');
+
+  valueChange = output<number>();
+}

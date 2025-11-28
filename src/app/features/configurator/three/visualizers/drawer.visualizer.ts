@@ -1,25 +1,33 @@
 import * as THREE from 'three';
 import { DrawerConfig } from '../../../../core/models/drawer.models';
 import { ThreeFactoryService } from '../services/three-factory.service';
+import { GridVisualizer } from './grid.visualizer';
+import { GridService } from '../../../../core/services/grid.service';
 import { DRAWER_WALL_THICKNESS } from '../constants';
 
 export class DrawerVisualizer {
   private floor: THREE.Mesh | null = null;
   private walls: THREE.Group | null = null;
+  private gridVisualizer: GridVisualizer;
 
   constructor(
     private readonly scene: THREE.Scene,
-    private readonly factory: ThreeFactoryService
-  ) {}
+    private readonly factory: ThreeFactoryService,
+    private readonly gridService: GridService
+  ) {
+    this.gridVisualizer = new GridVisualizer(scene);
+  }
 
   update(config: DrawerConfig): void {
     this.updateFloor(config);
     this.updateWalls(config);
+    this.updateGrid(config);
   }
 
   dispose(): void {
     this.disposeFloor();
     this.disposeWalls();
+    this.gridVisualizer.dispose();
   }
 
   private updateFloor(config: DrawerConfig): void {
@@ -76,6 +84,12 @@ export class DrawerVisualizer {
     this.walls.add(frontWall);
 
     this.scene.add(this.walls);
+  }
+
+  private updateGrid(config: DrawerConfig): void {
+    const gridLayout = this.gridService.gridLayout();
+    const cellSize = this.gridService.cellSize();
+    this.gridVisualizer.update(config, gridLayout, cellSize);
   }
 
   private disposeFloor(): void {

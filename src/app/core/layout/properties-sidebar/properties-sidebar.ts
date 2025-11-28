@@ -24,6 +24,7 @@ import { BoxColor } from '../../models/drawer.models';
           @if (selectedBox(); as box) {
             <eligo-box-properties-form
               [box]="box"
+              [drawerHeight]="drawerConfig().height"
               (xChange)="updateBoxX(box.id, $event)"
               (yChange)="updateBoxY(box.id, $event)"
               (widthChange)="updateBoxWidth(box.id, $event)"

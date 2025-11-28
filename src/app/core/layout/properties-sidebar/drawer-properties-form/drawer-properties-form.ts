@@ -1,49 +1,48 @@
-import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, input, output, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { InputNumberModule } from 'primeng/inputnumber';
 import { SidebarSection } from '../../../../shared/ui/sidebar-section/sidebar-section';
+import { MmInput } from '../../../../shared/form-controls/mm-input/mm-input';
 import { DrawerConfig } from '../../../models/drawer.models';
+import { GridService } from '../../../services/grid.service';
 
 @Component({
   selector: 'eligo-drawer-properties-form',
-  imports: [CommonModule, FormsModule, InputNumberModule, SidebarSection],
+  imports: [CommonModule, SidebarSection, MmInput],
   template: `
     <eligo-sidebar-section title="Ustawienia Szuflady">
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <label for="drawer-width" class="text-sm text-gray-600">Szerokość (mm)</label>
-          <p-inputNumber
+          <label for="drawer-width" class="text-sm font-medium text-gray-700">Szerokość</label>
+          <eligo-mm-input
             inputId="drawer-width"
-            [ngModel]="config().width"
-            (ngModelChange)="widthChange.emit($event ?? 0)"
-            suffix=" mm"
-            styleClass="w-full"
-            class="w-full"
+            [value]="config().width"
+            (valueChange)="widthChange.emit($event)"
+            [min]="200"
+            [max]="1200"
           />
+          <span class="text-xs text-gray-500">{{ gridUnitsWidth() }} komórek siatki ({{ cellSize() }}mm)</span>
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="drawer-depth" class="text-sm text-gray-600">Głębokość (mm)</label>
-          <p-inputNumber
+          <label for="drawer-depth" class="text-sm font-medium text-gray-700">Głębokość</label>
+          <eligo-mm-input
             inputId="drawer-depth"
-            [ngModel]="config().depth"
-            (ngModelChange)="depthChange.emit($event ?? 0)"
-            suffix=" mm"
-            styleClass="w-full"
-            class="w-full"
+            [value]="config().depth"
+            (valueChange)="depthChange.emit($event)"
+            [min]="200"
+            [max]="1200"
           />
+          <span class="text-xs text-gray-500">{{ gridUnitsDepth() }} komórek siatki ({{ cellSize() }}mm)</span>
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="drawer-height" class="text-sm text-gray-600">Wysokość (mm)</label>
-          <p-inputNumber
+          <label for="drawer-height" class="text-sm font-medium text-gray-700">Wysokość</label>
+          <eligo-mm-input
             inputId="drawer-height"
-            [ngModel]="config().height"
-            (ngModelChange)="heightChange.emit($event ?? 0)"
-            suffix=" mm"
-            styleClass="w-full"
-            class="w-full"
+            [value]="config().height"
+            (valueChange)="heightChange.emit($event)"
+            [min]="30"
+            [max]="300"
           />
         </div>
       </div>
@@ -53,7 +52,13 @@ import { DrawerConfig } from '../../../models/drawer.models';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DrawerPropertiesForm {
+  private readonly gridService = inject(GridService);
+
   config = input.required<DrawerConfig>();
+
+  readonly cellSize = this.gridService.cellSize;
+  readonly gridUnitsWidth = computed(() => Math.floor(this.config().width / this.cellSize()));
+  readonly gridUnitsDepth = computed(() => Math.floor(this.config().depth / this.cellSize()));
 
   widthChange = output<number>();
   depthChange = output<number>();

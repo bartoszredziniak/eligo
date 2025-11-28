@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { Box } from '../../../../core/models/drawer.models';
 import { ThreeFactoryService } from '../services/three-factory.service';
+import { GridService } from '../../../../core/services/grid.service';
 import { USER_DATA_KEYS } from '../constants';
 
 export class BoxMeshPool {
@@ -9,7 +10,8 @@ export class BoxMeshPool {
 
   constructor(
     private readonly scene: THREE.Scene,
-    private readonly factory: ThreeFactoryService
+    private readonly factory: ThreeFactoryService,
+    private readonly gridService: GridService
   ) {}
 
   updateBoxes(boxes: Box[], selectedId: string | null): void {
@@ -71,30 +73,40 @@ export class BoxMeshPool {
     this.disposeGeometries(group.children.filter((c) => c.name !== USER_DATA_KEYS.HIGHLIGHT));
     group.clear();
 
-    const newGroup = this.factory.createHollowBoxGroup(box.width, box.height, box.depth, box.color);
+    // Convert grid units to mm for 3D rendering using helper
+    const coords = this.gridService.convertBoxToMm(box);
+
+    const newGroup = this.factory.createHollowBoxGroup(coords.width, coords.height, coords.depth, box.color);
     this.transferChildren(newGroup, group);
 
-    group.position.set(box.x + box.width / 2, 0, box.y + box.depth / 2);
+    // Position using mm coordinates
+    group.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
 
     group.userData[USER_DATA_KEYS.BOX_ID] = box.id;
-    group.userData[USER_DATA_KEYS.WIDTH] = box.width;
-    group.userData[USER_DATA_KEYS.DEPTH] = box.depth;
+    group.userData[USER_DATA_KEYS.WIDTH] = coords.width;
+    group.userData[USER_DATA_KEYS.DEPTH] = coords.depth;
 
-    this.handleHighlight(mesh, box, isSelected);
+    this.handleHighlight(mesh, coords.width, coords.height, coords.depth, isSelected);
   }
 
-  private handleHighlight(mesh: THREE.Mesh, box: Box, isSelected: boolean): void {
+  private handleHighlight(
+    mesh: THREE.Mesh,
+    widthMm: number,
+    heightMm: number,
+    depthMm: number,
+    isSelected: boolean
+  ): void {
     const existingHighlight = mesh.children.find((c) => c.name === USER_DATA_KEYS.HIGHLIGHT);
-    
+
     if (existingHighlight) {
       mesh.remove(existingHighlight);
       this.disposeLineSegments(existingHighlight as THREE.LineSegments);
     }
 
     if (isSelected) {
-      const highlight = this.factory.createSelectionHighlight(box.width, box.height, box.depth);
+      const highlight = this.factory.createSelectionHighlight(widthMm, heightMm, depthMm);
       highlight.name = USER_DATA_KEYS.HIGHLIGHT;
-      highlight.position.set(0, box.height / 2, 0);
+      highlight.position.set(0, heightMm / 2, 0);
       mesh.add(highlight);
     }
   }

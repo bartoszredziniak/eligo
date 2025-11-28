@@ -72,14 +72,13 @@ export class ToolsSidebar {
   addBox() {
     this.stateService.startAddingBox();
 
-    // Temporary: Immediately add box for testing logic
-    // In real implementation, this would happen after drag & drop
+    // Add box with grid units (6x6 grid units = 96x96mm at default 16mm grid)
     this.drawerService.addBox({
-      width: 100,
-      depth: 100,
-      height: 50,
-      x: 0,
-      y: 0,
+      width: 6, // grid units
+      depth: 6, // grid units
+      height: 50, // mm (height is not grid-based)
+      x: 0, // grid units
+      y: 0, // grid units
       color: 'white',
     });
 

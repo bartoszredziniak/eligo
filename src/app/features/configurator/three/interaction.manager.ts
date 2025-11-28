@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { Subject } from 'rxjs';
+import { GridService } from '../../../core/services/grid.service';
 import { USER_DATA_KEYS } from './constants';
 
 export class InteractionManager {
@@ -26,7 +27,8 @@ export class InteractionManager {
 
   constructor(
     private readonly camera: THREE.Camera,
-    private readonly scene: THREE.Scene
+    private readonly scene: THREE.Scene,
+    private readonly gridService: GridService
   ) {}
 
   updateDrawerDimensions(width: number, depth: number): void {
@@ -61,13 +63,12 @@ export class InteractionManager {
     const mesh = this.findMeshById(this.draggedBoxId);
     if (!mesh) return;
 
-    const { width, depth } = this.getBoxDimensions(mesh);
-    const clampedPosition = this.clampToDrawer(target, width, depth);
+    const clampedPosition = this.calculateSnappedPosition(target, mesh);
 
     this._boxDrag.next({
       id: this.draggedBoxId,
-      x: Math.round(clampedPosition.x),
-      y: Math.round(clampedPosition.y),
+      x: clampedPosition.x,
+      y: clampedPosition.y,
     });
   }
 
@@ -77,6 +78,33 @@ export class InteractionManager {
       this.draggedBoxId = null;
       this._dragEnd.next();
     }
+  }
+
+  /**
+   * Calculate snapped grid position from target coordinates and mesh dimensions
+   */
+  private calculateSnappedPosition(
+    target: THREE.Vector3,
+    mesh: THREE.Object3D
+  ): { x: number; y: number } {
+    const { width, depth } = this.getBoxDimensions(mesh);
+
+    // Convert mm to grid units for snapping
+    const targetXGridUnits = this.gridService.mmToGridUnits(target.x - width / 2);
+    const targetYGridUnits = this.gridService.mmToGridUnits(target.z - depth / 2);
+
+    // Get box dimensions in grid units
+    const widthGridUnits = this.gridService.mmToGridUnits(width);
+    const depthGridUnits = this.gridService.mmToGridUnits(depth);
+
+    // Use cached grid layout
+    const gridLayout = this.gridService.gridLayout();
+
+    // Clamp to grid bounds and return
+    return {
+      x: this.gridService.clampToGridBounds(targetXGridUnits, widthGridUnits, gridLayout.gridUnitsWidth),
+      y: this.gridService.clampToGridBounds(targetYGridUnits, depthGridUnits, gridLayout.gridUnitsDepth),
+    };
   }
 
   private findBoxByRaycast(): {
@@ -128,20 +156,6 @@ export class InteractionManager {
     const boxPos = new THREE.Vector3();
     boxObject.getWorldPosition(boxPos);
     this.dragOffset.copy(boxPos).sub(intersectionPoint);
-  }
-
-  private clampToDrawer(
-    target: THREE.Vector3,
-    width: number,
-    depth: number
-  ): { x: number; y: number } {
-    const topLeftX = target.x - width / 2;
-    const topLeftY = target.z - depth / 2;
-
-    return {
-      x: Math.max(0, Math.min(topLeftX, this.drawerDimensions.width - width)),
-      y: Math.max(0, Math.min(topLeftY, this.drawerDimensions.depth - depth)),
-    };
   }
 
   private updateMouse(event: MouseEvent, rect: DOMRect): void {

@@ -15,6 +15,7 @@ import { BoxVisualizer } from '../../three/visualizers/box.visualizer';
 import { InteractionManager } from '../../three/interaction.manager';
 import { DrawerService } from '../../../../core/services/drawer.service';
 import { ConfiguratorStateService } from '../../../../core/services/configurator-state.service';
+import { GridService } from '../../../../core/services/grid.service';
 import { ThreeFactoryService } from '../../three/services/three-factory.service';
 import { DrawerConfig } from '../../../../core/models/drawer.models';
 
@@ -50,6 +51,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   private readonly drawerService = inject(DrawerService);
   private readonly stateService = inject(ConfiguratorStateService);
   private readonly factoryService = inject(ThreeFactoryService);
+  private readonly gridService = inject(GridService);
 
   private facade!: ThreeSceneFacade;
   private drawerVisualizer!: DrawerVisualizer;
@@ -61,6 +63,10 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   constructor() {
     effect(() => {
       const config = this.drawerService.drawerConfig();
+      
+      // Update grid service with current drawer dimensions for cached layout
+      this.gridService.updateDrawerDimensions(config.width, config.depth);
+      
       if (this.drawerVisualizer) {
         this.drawerVisualizer.update(config);
       }
@@ -121,9 +127,9 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     const scene = this.facade.getScene();
     const camera = this.facade.getCamera();
 
-    this.drawerVisualizer = new DrawerVisualizer(scene, this.factoryService);
-    this.boxVisualizer = new BoxVisualizer(scene, this.factoryService);
-    this.interactionManager = new InteractionManager(camera, scene);
+    this.drawerVisualizer = new DrawerVisualizer(scene, this.factoryService, this.gridService);
+    this.boxVisualizer = new BoxVisualizer(scene, this.factoryService, this.gridService);
+    this.interactionManager = new InteractionManager(camera, scene, this.gridService);
 
     this.setupInteractionSubscriptions();
     this.performInitialRender();
@@ -149,6 +155,9 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
   private performInitialRender(): void {
     const config = this.drawerService.drawerConfig();
+
+    // Initialize grid service with drawer dimensions
+    this.gridService.updateDrawerDimensions(config.width, config.depth);
 
     this.drawerVisualizer.update(config);
     this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId());
