@@ -61,6 +61,47 @@ export class DrawerService {
     this._boxes.update((boxes) => boxes.map((b) => (b.id === id ? { ...b, ...updates } : b)));
   }
 
+  /**
+   * Find the first free position for a box with given dimensions
+   * @param width Box width in grid units
+   * @param depth Box depth in grid units
+   * @returns First free position {x, y} or null if drawer is full
+   */
+  findFirstFreePosition(width: number, depth: number): { x: number; y: number } | null {
+    const layout = this.gridService.gridLayout();
+    const maxX = layout.gridUnitsWidth;
+    const maxY = layout.gridUnitsDepth;
+
+    // Try each position starting from (0,0)
+    for (let y = 0; y <= maxY - depth; y++) {
+      for (let x = 0; x <= maxX - width; x++) {
+        // Create a temporary box at this position
+        const testBox: Box = {
+          id: 'temp',
+          x,
+          y,
+          width,
+          depth,
+          height: 50,
+          color: 'white',
+          name: 'Test',
+        };
+
+        // Check if it collides with any existing box
+        const hasCollision = this._boxes().some((existingBox) => {
+          return this.collisionService.checkCollision(testBox, existingBox);
+        });
+
+        if (!hasCollision) {
+          return { x, y };
+        }
+      }
+    }
+
+    // No free position found
+    return null;
+  }
+
   clearBoxes() {
     this._boxes.set([]);
   }

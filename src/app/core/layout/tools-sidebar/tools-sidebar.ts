@@ -8,10 +8,11 @@ import { DrawerService } from '../../services/drawer.service';
 import { BOX_COLORS } from '../../models/drawer.models';
 
 import { ValidationErrorsPanel } from '../../../features/configurator/components/validation-errors-panel/validation-errors-panel';
+import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 
 @Component({
   selector: 'eligo-tools-sidebar',
-  imports: [CommonModule, ButtonModule, UiSidebar, SidebarSection, ValidationErrorsPanel],
+  imports: [CommonModule, ButtonModule, UiSidebar, SidebarSection, ValidationErrorsPanel, EmptyState],
   template: `
     <eligo-ui-sidebar>
       <eligo-sidebar-section title="Narzędzia">
@@ -40,9 +41,12 @@ import { ValidationErrorsPanel } from '../../../features/configurator/components
           </button>
 
           @if (drawerService.boxes().length === 0) {
-            <div class="text-sm text-gray-500 italic text-center py-4">
-              Brak pudełek w szufladzie
-            </div>
+            <eligo-empty-state
+              [mini]="true"
+              icon="pi-inbox"
+              header="Brak pudełek"
+              description="Dodaj pudełko aby rozpocząć"
+            />
           } @else {
             @for (box of drawerService.boxes(); track box.id) {
               <button
@@ -103,13 +107,22 @@ export class ToolsSidebar {
   addBox() {
     this.stateService.startAddingBox();
 
+    const width = 6; // grid units
+    const depth = 6; // grid units
+    
+    // Try to find first free position
+    const freePosition = this.drawerService.findFirstFreePosition(width, depth);
+    
+    // Use free position or default to (0,0) if drawer is full
+    const { x, y } = freePosition || { x: 0, y: 0 };
+
     // Add box with grid units (6x6 grid units = 96x96mm at default 16mm grid)
     this.drawerService.addBox({
-      width: 6, // grid units
-      depth: 6, // grid units
+      width,
+      depth,
       height: 50, // mm (height is not grid-based)
-      x: 0, // grid units
-      y: 0, // grid units
+      x,
+      y,
       color: 'white',
       name: 'Pudełko',
     });

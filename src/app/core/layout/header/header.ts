@@ -1,14 +1,15 @@
 import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { NgOptimizedImage } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { UiHeader } from '../../../shared/ui/ui-header/ui-header';
 
 @Component({
   selector: 'eligo-header',
-  imports: [ButtonModule, UiHeader],
+  imports: [NgOptimizedImage, ButtonModule, UiHeader],
   template: `
     <eligo-ui-header>
       <div start class="flex items-center gap-2">
-        <span class="font-bold text-xl tracking-tight">Eligo</span>
+        <img ngSrc="/eligo-logo.svg" alt="Eligo" width="120" height="24" priority />
       </div>
 
       <div end>

@@ -3,10 +3,11 @@ import { CommonModule } from '@angular/common';
 import { MessageModule } from 'primeng/message';
 import { BadgeModule } from 'primeng/badge';
 import { SidebarSection } from '../../../../shared/ui/sidebar-section/sidebar-section';
+import { EmptyState } from '../../../../shared/ui/empty-state/empty-state';
 
 @Component({
   selector: 'eligo-validation-errors-panel',
-  imports: [CommonModule, SidebarSection, MessageModule, BadgeModule],
+  imports: [CommonModule, SidebarSection, MessageModule, BadgeModule, EmptyState],
   template: `
     <eligo-sidebar-section [defaultExpanded]="true" [hasHeaderContent]="true">
       <span header class="flex items-center gap-2">
@@ -26,11 +27,12 @@ import { SidebarSection } from '../../../../shared/ui/sidebar-section/sidebar-se
             </div>
           </p-message>
         } @else {
-          <p-message severity="success" variant="outlined" class="w-full">
-            <div class="flex items-center gap-2">
-              <span class="text-sm">Wszystkie elementy są rozmieszczone poprawnie.</span>
-            </div>
-          </p-message>
+          <eligo-empty-state
+            [mini]="true"
+            icon="pi-check-circle"
+            header="Brak błędów"
+            description="Wszystko skonfigurowane poprawnie"
+          />
         }
       </div>
     </eligo-sidebar-section>

@@ -20,9 +20,11 @@ import { GridService } from '../../../../core/services/grid.service';
 import { ThreeFactoryService } from '../../three/services/three-factory.service';
 import { DrawerConfig } from '../../../../core/models/drawer.models';
 
+import { PanelModule } from 'primeng/panel';
+
 @Component({
   selector: 'eligo-canvas-stage',
-  imports: [CommonModule],
+  imports: [CommonModule, PanelModule],
   template: `
     <div
       #canvasContainer
@@ -33,6 +35,25 @@ import { DrawerConfig } from '../../../../core/models/drawer.models';
       (mouseleave)="onMouseUp()"
     >
       <!-- Canvas will be injected here by Three.js -->
+      
+      <div class="absolute bottom-4 right-4 z-10 w-64 opacity-90 hover:opacity-100 transition-opacity">
+        <p-panel header="Sterowanie 3D" [toggleable]="true" [collapsed]="true" styleClass="text-sm">
+          <ul class="list-none p-0 m-0 text-sm space-y-2">
+            <li class="flex items-center gap-2">
+              <i class="pi pi-sync text-primary"></i>
+              <span>Obracanie: Lewy Przycisk</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="pi pi-arrows-alt text-primary"></i>
+              <span>Przesuwanie: Prawy Przycisk</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <i class="pi pi-search-plus text-primary"></i>
+              <span>Przybliżanie: Rolka</span>
+            </li>
+          </ul>
+        </p-panel>
+      </div>
     </div>
   `,
   styles: [
@@ -41,6 +62,15 @@ import { DrawerConfig } from '../../../../core/models/drawer.models';
         display: block;
         width: 100%;
         height: 100%;
+      }
+      
+      :host ::ng-deep .p-panel .p-panel-header {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+      }
+      
+      :host ::ng-deep .p-panel .p-panel-content {
+        padding: 0.75rem;
       }
     `,
   ],
