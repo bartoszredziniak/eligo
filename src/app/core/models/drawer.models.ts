@@ -14,8 +14,10 @@ export const BOX_COLORS: { label: string; value: BoxColor; hex: string }[] = [
   { label: 'Ciemny Szary', value: 'dark-gray', hex: '#a9a9a9' },
 ];
 
+
 export interface Box {
   id: string;
+  name: string;
   /** X position in grid units */
   x: number;
   /** Y position in grid units */
@@ -28,4 +30,20 @@ export interface Box {
   height: number;
   color: BoxColor;
 }
+
+export interface BoxPreset {
+  label: string;
+  width: number; // grid units
+  depth: number; // grid units
+}
+
+export const BOX_PRESETS: BoxPreset[] = [
+  { label: 'Łyżeczki', width: 6, depth: 10 },
+  { label: 'Widelczyki', width: 6, depth: 10 },
+  { label: 'Noże', width: 6, depth: 16 },
+  { label: 'Łyżki', width: 6, depth: 16 },
+  { label: 'Widelce', width: 6, depth: 16 },
+  { label: 'Łopatki/Chochle', width: 8, depth: 20 },
+];
+
 

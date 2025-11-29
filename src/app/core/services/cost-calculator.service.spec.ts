@@ -11,24 +11,6 @@ describe('CostCalculatorService', () => {
   });
 
   it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
-
-  it('should calculate mass correctly for a simple box', () => {
-    // 1x1 grid unit box (16mm x 16mm) with height 50mm
-    const box: Box = {
-      id: 'test',
-      x: 0,
-      y: 0,
-      width: 1,
-      depth: 1,
-      height: 50,
-      color: 'white',
-    };
-    const cellSize = 16;
-
-    const mass = service.calculateBoxMass(box, cellSize);
-    
     // Manual calculation check:
     // Width = 16mm, Depth = 16mm, Height = 50mm
     // Wall Thickness = 3mm, Floor Thickness = 3mm

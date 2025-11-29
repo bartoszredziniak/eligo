@@ -3,18 +3,48 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { RadioButtonModule } from 'primeng/radiobutton';
+import { Select } from 'primeng/select';
+import { InputText } from 'primeng/inputtext';
 import { SidebarSection } from '../../../../shared/ui/sidebar-section/sidebar-section';
 import { GridUnitInput } from '../../../../shared/form-controls/grid-unit-input/grid-unit-input';
 import { MmInput } from '../../../../shared/form-controls/mm-input/mm-input';
-import { Box, BOX_COLORS, BoxColor } from '../../../models/drawer.models';
+import { Box, BOX_COLORS, BoxColor, BOX_PRESETS, BoxPreset } from '../../../models/drawer.models';
 import { GridService } from '../../../services/grid.service';
+
 
 @Component({
   selector: 'eligo-box-properties-form',
-  imports: [CommonModule, FormsModule, ButtonModule, RadioButtonModule, SidebarSection, GridUnitInput, MmInput],
+  imports: [CommonModule, FormsModule, ButtonModule, RadioButtonModule, Select, InputText, SidebarSection, GridUnitInput, MmInput],
   template: `
     <eligo-sidebar-section title="Edycja Pudełka">
       <div class="flex flex-col gap-6">
+        <!-- Presets Section -->
+        <div class="flex flex-col gap-2">
+          <label for="box-preset" class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Predefiniowane ustawienia</label>
+          <p-select
+            inputId="box-preset"
+            [options]="presets"
+            optionLabel="label"
+            placeholder="Wybierz konfigurację"
+            (onChange)="applyPreset($event.value)"
+            styleClass="w-full"
+            [showClear]="true"
+            (onClear)="clearPreset()"
+          />
+        </div>
+
+        <!-- Name Section -->
+        <div class="flex flex-col gap-2">
+          <label for="box-name" class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nazwa</label>
+          <input
+            pInputText
+            id="box-name"
+            [ngModel]="box().name"
+            (ngModelChange)="nameChange.emit($event)"
+            class="w-full"
+          />
+        </div>
+
         <!-- Position Section -->
         <div class="flex flex-col gap-2">
           <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pozycja</h4>
@@ -132,6 +162,7 @@ export class BoxPropertiesForm {
   drawerHeight = input.required<number>();
 
   readonly availableColors = BOX_COLORS;
+  readonly presets = BOX_PRESETS;
   readonly cellSize = this.gridService.cellSize;
   readonly gridLayout = this.gridService.gridLayout;
 
@@ -172,5 +203,29 @@ export class BoxPropertiesForm {
   depthChange = output<number>();
   heightChange = output<number>();
   colorChange = output<BoxColor>();
+  nameChange = output<string>();
   deleteBox = output<void>();
+
+  applyPreset(preset: BoxPreset | null) {
+    if (!preset) return;
+
+    // Update dimensions
+    this.widthChange.emit(preset.width);
+    this.depthChange.emit(preset.depth);
+
+    // Update name logic
+    const currentName = this.box().name;
+    const isDefaultName = currentName === 'Pudełko';
+    const isPresetName = this.presets.some(p => p.label === currentName);
+
+    if (isDefaultName || isPresetName) {
+      this.nameChange.emit(preset.label);
+    }
+  }
+
+  clearPreset() {
+    // Optional: reset to default? Or just do nothing.
+    // User didn't specify what happens on clear.
+  }
 }
+

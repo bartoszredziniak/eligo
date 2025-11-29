@@ -24,6 +24,12 @@ export class ThreeSceneFacade {
     this.scene.background = new THREE.Color(0xf9fafb); // gray-50
   }
 
+  setBackground(color: THREE.Color | null): void {
+    if (this.scene) {
+      this.scene.background = color;
+    }
+  }
+
   private initCamera(): void {
     const { clientWidth, clientHeight } = this.container;
     this.camera = new THREE.PerspectiveCamera(
@@ -125,5 +131,20 @@ export class ThreeSceneFacade {
 
   getCamera(): THREE.PerspectiveCamera {
     return this.camera;
+  }
+
+  getRenderer(): THREE.WebGLRenderer {
+    return this.renderer;
+  }
+
+  getControls(): OrbitControls {
+    return this.controls;
+  }
+
+  /**
+   * Manual render for one-time rendering (e.g., for image capture)
+   */
+  render(): void {
+    this.renderer.render(this.scene, this.camera);
   }
 }

@@ -10,7 +10,10 @@ import { AccordionModule } from 'primeng/accordion';
       <p-accordion-panel value="0">
         <p-accordion-header [class]="headerClass()">
           <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider w-full" [class]="headerClass()">
-            {{ title() }}
+            <ng-content select="[header]" />
+            @if (!hasHeaderContent()) {
+              {{ title() }}
+            }
           </span>
         </p-accordion-header>
         <p-accordion-content>
@@ -59,8 +62,9 @@ import { AccordionModule } from 'primeng/accordion';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarSection {
-  title = input.required<string>();
+  title = input('');
   collapsible = input(true);
-  defaultExpanded = input(false);
+  defaultExpanded = input(true);
   headerClass = input('');
+  hasHeaderContent = input(false);
 }

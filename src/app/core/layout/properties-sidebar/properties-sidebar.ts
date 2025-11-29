@@ -31,6 +31,7 @@ import { BoxColor } from '../../models/drawer.models';
               (depthChange)="updateBoxDepth(box.id, $event)"
               (heightChange)="updateBoxHeight(box.id, $event)"
               (colorChange)="updateBoxColor(box.id, $event)"
+              (nameChange)="updateBoxName(box.id, $event)"
               (deleteBox)="removeBox(box.id)"
             />
           }
@@ -87,6 +88,10 @@ export class PropertiesSidebar {
 
   updateBoxColor(id: string, color: BoxColor) {
     this.drawerService.updateBox(id, { color });
+  }
+
+  updateBoxName(id: string, name: string) {
+    this.drawerService.updateBox(id, { name });
   }
 
   removeBox(id: string) {

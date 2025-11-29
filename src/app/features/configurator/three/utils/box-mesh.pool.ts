@@ -54,45 +54,24 @@ export class BoxMeshPool {
         const coords = this.gridService.convertBoxToMm(box);
         const prevWidth = mesh.userData[USER_DATA_KEYS.WIDTH];
         const prevDepth = mesh.userData[USER_DATA_KEYS.DEPTH];
-        // We also need to check height if it can change, but currently it's fixed or part of box data
-        // Let's assume height is derived from box data which might change. 
-        // But userData only stores width/depth. Let's rely on Box object comparison or just coords.
-        // Ideally we store all dimensions in userData to compare.
-        
-        // For now, let's check if dimensions or color changed.
-        // We can store the previous box state hash or properties.
-        
-        // Simplified check: if dimensions match, just update position and visual state
-        // But color change requires full rebuild of children materials? 
-        // Actually createHollowBoxGroup uses color to pick material.
-        
-        // Let's just do full update for now as "Optimization" step in plan was about avoiding geometry rebuilds.
-        // But to properly implement the optimization we need to track state.
-        
-        // Let's implement a smart update:
-        // 1. Position always updates.
-        // 2. Visual state (highlight/error) updates via updateVisualState.
-        // 3. Geometry/Material only updates if dimensions/color change.
-        
-        // To do this robustly without complex state tracking on mesh, let's just use the "full update" 
-        // but optimize inside updateMesh to reuse geometry if possible? 
-        // The factory creates new geometry every time.
-        
-        // Let's stick to the plan: "Refactor updateMesh to avoid rebuilding geometry if dimensions/color haven't changed."
-        
-        // We need to store color in userData to check for changes.
         const prevColor = mesh.userData['boxColor'];
         
         // Check if geometry needs rebuild
         if (
           Math.abs(prevWidth - coords.width) < 0.01 &&
           Math.abs(prevDepth - coords.depth) < 0.01 &&
-          // We need height check too. Let's add height to userData.
-          // For now assuming height doesn't change often or we just rebuild.
           prevColor === box.color
         ) {
            // Geometry and color same, just update position and visual overlays
            mesh.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
+           
+           // Check if name changed for label update
+           const prevName = mesh.userData['boxName'];
+           if (prevName !== box.name) {
+             this.updateLabel(mesh as unknown as THREE.Group, box.name, coords.width, coords.depth);
+             mesh.userData['boxName'] = box.name;
+           }
+
            this.updateVisualState(mesh, coords.width, coords.height, coords.depth, isSelected, isInvalid);
         } else {
            this.updateMesh(mesh, box, isSelected, isInvalid);
@@ -117,28 +96,77 @@ export class BoxMeshPool {
     this.available.push(mesh);
   }
 
+
   private updateMesh(mesh: THREE.Mesh, box: Box, isSelected: boolean, isInvalid: boolean): void {
     const group = mesh as unknown as THREE.Group;
 
-    this.disposeGeometries(group.children.filter((c) => c.name !== USER_DATA_KEYS.HIGHLIGHT));
-    group.clear();
-
-    // Convert grid units to mm for 3D rendering using helper
     const coords = this.gridService.convertBoxToMm(box);
+    const prevWidth = group.userData[USER_DATA_KEYS.WIDTH];
+    const prevDepth = group.userData[USER_DATA_KEYS.DEPTH];
+    const prevName = group.userData['boxName'];
+    const prevColor = group.userData['boxColor'];
 
-    const newGroup = this.factory.createHollowBoxGroup(coords.width, coords.height, coords.depth, box.color);
-    this.transferChildren(newGroup, group);
+    const dimensionsChanged = Math.abs(prevWidth - coords.width) > 0.01 || Math.abs(prevDepth - coords.depth) > 0.01;
+    const colorChanged = prevColor !== box.color;
+    const nameChanged = prevName !== box.name;
 
-    // Position using mm coordinates
-    group.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
+    if (dimensionsChanged || colorChanged) {
+        this.disposeGeometries(group.children.filter((c) => c.name !== USER_DATA_KEYS.HIGHLIGHT));
+        group.clear();
 
-    group.userData[USER_DATA_KEYS.BOX_ID] = box.id;
-    group.userData[USER_DATA_KEYS.WIDTH] = coords.width;
-    group.userData[USER_DATA_KEYS.DEPTH] = coords.depth;
-    group.userData['boxColor'] = box.color;
+        const newGroup = this.factory.createHollowBoxGroup(coords.width, coords.height, coords.depth, box.color);
+        this.transferChildren(newGroup, group);
+
+        // Position using mm coordinates
+        group.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
+
+        group.userData[USER_DATA_KEYS.BOX_ID] = box.id;
+        group.userData[USER_DATA_KEYS.WIDTH] = coords.width;
+        group.userData[USER_DATA_KEYS.DEPTH] = coords.depth;
+        group.userData['boxColor'] = box.color;
+    } else {
+        // Just update position if needed
+        group.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
+    }
+
+    // Handle Label
+    if (nameChanged || dimensionsChanged) { 
+        this.updateLabel(group, box.name, coords.width, coords.depth);
+        group.userData['boxName'] = box.name;
+    }
 
     this.updateVisualState(mesh, coords.width, coords.height, coords.depth, isSelected, isInvalid);
   }
+
+  private updateLabel(group: THREE.Group, text: string, width: number, depth: number): void {
+    // Remove existing label
+    const existingLabel = group.children.find((c) => c.name === 'label');
+    if (existingLabel) {
+      group.remove(existingLabel);
+      if (existingLabel.userData['dispose']) {
+        existingLabel.userData['dispose']();
+      } else {
+        // Fallback disposal
+        const mesh = existingLabel as THREE.Mesh;
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) {
+          const mat = mesh.material as THREE.Material;
+          mat.dispose();
+          if ((mat as any).map) (mat as any).map.dispose();
+        }
+      }
+    }
+
+    // Create new label
+    const labelMesh = this.factory.createLabelMesh(text, width, depth);
+    if (labelMesh) {
+      // Position slightly above floor (floor top is at y=2mm if thickness is 2)
+      // Let's put it at y=2.2mm to be safe above floor.
+      labelMesh.position.set(0, 2.2, 0);
+      group.add(labelMesh);
+    }
+  }
+
 
   private updateVisualState(
     mesh: THREE.Mesh,
@@ -152,13 +180,9 @@ export class BoxMeshPool {
     this.handleHighlight(mesh, widthMm, heightMm, depthMm, isSelected);
 
     // Handle Error State (Red Color Overlay or Material Swap)
-    // Since we are using a Group with children meshes for walls, we can traverse and swap materials.
-    // But we need to restore original material if valid.
-    // The factory returns meshes with shared materials from a map.
-    
     const group = mesh as unknown as THREE.Group;
     group.children.forEach((child) => {
-      if (child.name === USER_DATA_KEYS.HIGHLIGHT) return;
+      if (child.name === USER_DATA_KEYS.HIGHLIGHT || child.name === 'label') return;
       
       const meshChild = child as THREE.Mesh;
       if (isInvalid) {

@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
 import { UiSidebar } from '../../../shared/ui/ui-sidebar/ui-sidebar';
@@ -52,12 +52,31 @@ import { ValidationErrorsPanel } from '../../../features/configurator/components
                 [class.bg-blue-50]="stateService.selectedBoxId() === box.id"
                 (click)="stateService.selectBox(box.id)"
               >
-                <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium">Pudełko</span>
-                  @if (drawerService.collisions().has(box.id)) {
-                    <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
-                  }
-                </div>
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                    @if (editingBoxId() === box.id) {
+                      <input
+                        type="text"
+                        [value]="box.name"
+                        class="w-full text-sm p-1 border rounded"
+                        (click)="$event.stopPropagation()"
+                        (blur)="saveName($event, box.id)"
+                        (keydown.enter)="saveName($event, box.id)"
+                        (keydown.escape)="cancelEditing()"
+                        autoFocus
+                      />
+                    } @else {
+                      <span
+                        class="text-sm font-medium truncate"
+                        (dblclick)="startEditing($event, box.id)"
+                        title="Kliknij dwukrotnie aby zmienić nazwę"
+                      >
+                        {{ box.name }}
+                      </span>
+                    }
+                    @if (drawerService.collisions().has(box.id)) {
+                      <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
+                    }
+                  </div>
                 <div
                   class="w-4 h-4 rounded border"
                   [style.background-color]="getBoxColorHex(box.color)"
@@ -74,9 +93,12 @@ import { ValidationErrorsPanel } from '../../../features/configurator/components
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
+
 export class ToolsSidebar {
   protected readonly stateService = inject(ConfiguratorStateService);
   protected readonly drawerService = inject(DrawerService);
+
+  editingBoxId = signal<string | null>(null);
 
   addBox() {
     this.stateService.startAddingBox();
@@ -89,6 +111,7 @@ export class ToolsSidebar {
       x: 0, // grid units
       y: 0, // grid units
       color: 'white',
+      name: 'Pudełko',
     });
 
     this.stateService.finishAddingBox();
@@ -98,4 +121,23 @@ export class ToolsSidebar {
     const colorDef = BOX_COLORS.find((c) => c.value === colorName);
     return colorDef?.hex || '#ffffff';
   }
+
+  startEditing(event: MouseEvent, boxId: string) {
+    event.stopPropagation(); // Prevent selection when starting edit
+    this.editingBoxId.set(boxId);
+  }
+
+  saveName(event: Event, boxId: string) {
+    const input = event.target as HTMLInputElement;
+    const newName = input.value.trim();
+    if (newName) {
+      this.drawerService.updateBox(boxId, { name: newName });
+    }
+    this.editingBoxId.set(null);
+  }
+
+  cancelEditing() {
+    this.editingBoxId.set(null);
+  }
 }
+

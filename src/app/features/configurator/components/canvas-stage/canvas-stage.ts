@@ -9,6 +9,7 @@ import {
   effect,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import * as THREE from 'three';
 import { ThreeSceneFacade } from '../../three/three-scene.facade';
 import { DrawerVisualizer } from '../../three/visualizers/drawer.visualizer';
 import { BoxVisualizer } from '../../three/visualizers/box.visualizer';
@@ -172,6 +173,62 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   private updateControlsForConfig(config: DrawerConfig): void {
     this.interactionManager.updateDrawerDimensions(config.width, config.depth);
     this.facade.setControlsTarget(config.width / 2, 0, config.depth / 2);
+  }
+
+  /**
+   * Capture the current 3D scene as a base64 image for PDF generation
+   */
+  public captureScene(): string {
+    if (!this.facade) {
+      return '';
+    }
+    
+    const scene = this.facade.getScene();
+    const originalBackground = scene.background;
+
+    // 1. Set white background for PDF
+    scene.background = new THREE.Color(0xffffff);
+
+    // 2. Add labels for each box
+    const boxes = this.drawerService.boxes();
+    const labels: THREE.Sprite[] = [];
+
+    boxes.forEach((box, index) => {
+      const sprite = this.factoryService.createLabelSprite(`${index + 1}`);
+      const coords = this.gridService.convertBoxToMm(box);
+      
+      // Position above the box center
+      sprite.position.set(
+        coords.x + coords.width / 2,
+        coords.height + 30, // Lift label above the box
+        coords.y + coords.depth / 2
+      );
+      
+      scene.add(sprite);
+      labels.push(sprite);
+    });
+    
+    // 3. Render the scene with changes
+    this.facade.render();
+    
+    // 4. Capture canvas
+    const canvas = this.facade.getRenderer().domElement;
+    const dataUrl = canvas.toDataURL('image/png', 0.8);
+
+    // 5. Cleanup labels
+    labels.forEach(label => {
+      scene.remove(label);
+      label.material.map?.dispose();
+      label.material.dispose();
+    });
+    
+    // 6. Restore original background
+    scene.background = originalBackground;
+    
+    // 7. Render again to restore view for user
+    this.facade.render();
+
+    return dataUrl;
   }
 
   private initResizeObserver(): void {
