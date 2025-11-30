@@ -21,7 +21,7 @@ export class ThreeSceneFacade {
 
   private initScene(): void {
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0xf9fafb); // gray-50
+    this.scene.background = new THREE.Color(0xfafaf9); // warm grey - stone-50
   }
 
   setBackground(color: THREE.Color | null): void {
@@ -65,6 +65,20 @@ export class ThreeSceneFacade {
     }
   }
 
+  resetCamera(): void {
+    if (this.controls && this.camera) {
+      // Reset to default position (top-down isometric view)
+      // We use the current target as the center point
+      const target = this.controls.target;
+      
+      // Position camera high up and slightly offset to maintain orientation
+      this.camera.position.set(target.x, 1200, target.z + 0.1);
+      this.camera.lookAt(target.x, 0, target.z);
+      
+      this.controls.update();
+    }
+  }
+
   enableControls(enabled: boolean): void {
     if (this.controls) {
       this.controls.enabled = enabled;
@@ -72,15 +86,30 @@ export class ThreeSceneFacade {
   }
 
   private initLights(): void {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    // Brighter ambient light for overall illumination
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.0);
     this.scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    // Add hemisphere light for natural sky/ground lighting
+    const hemisphereLight = new THREE.HemisphereLight(
+      0xffffff, // sky color - white
+      0xf0f0f0, // ground color - light grey
+      0.4
+    );
+    this.scene.add(hemisphereLight);
+
+    // Main directional light (softer than before)
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
     directionalLight.position.set(500, 1000, 500);
     directionalLight.castShadow = true;
     directionalLight.shadow.mapSize.width = 2048;
     directionalLight.shadow.mapSize.height = 2048;
     this.scene.add(directionalLight);
+
+    // Secondary directional light to fill shadows from different angle
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.3);
+    fillLight.position.set(-300, 500, -300);
+    this.scene.add(fillLight);
   }
 
   private startAnimationLoop(): void {

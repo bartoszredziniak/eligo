@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Box, DrawerConfig, BoxColor } from '../models/drawer.models';
 import { CostCalculatorService } from './cost-calculator.service';
 import { GridService } from './grid.service';
+import { APP_CONFIG } from '../config/app.config';
 
 @Injectable({
   providedIn: 'root',
@@ -17,7 +18,8 @@ export class PdfGeneratorService {
   async generateOrderPdf(
     drawerConfig: DrawerConfig,
     boxes: Box[],
-    drawerImageBase64: string
+    drawerImageBase64: string,
+    configCode: string
   ): Promise<void> {
     // Lazy load pdfMake only when needed
     if (!this.pdfMakeInitialized) {
@@ -48,7 +50,8 @@ export class PdfGeneratorService {
       boxesData,
       totalMass,
       totalPrice,
-      drawerImageBase64
+      drawerImageBase64,
+      configCode
     );
 
     (window as any).pdfMake.createPdf(docDefinition).download('eligo-zamowienie.pdf');
@@ -75,7 +78,8 @@ export class PdfGeneratorService {
     boxesData: { box: Box; mass: number; price: number; coords: { x: number; y: number; width: number; height: number; depth: number } }[],
     totalMass: number,
     totalPrice: number,
-    drawerImageBase64: string
+    drawerImageBase64: string,
+    configCode: string
   ): any {
     return {
       pageSize: 'A4',
@@ -88,20 +92,13 @@ export class PdfGeneratorService {
       },
 
       content: [
-        // Header
-        {
-          text: 'Eligo - Zamówienie',
-          style: 'header',
-          margin: [40, 20, 40, 10],
-        },
-
         // Content Row: Image + Config
         {
           columns: [
             // Left: Image
             {
               image: drawerImageBase64,
-              width: 220,
+              width: 300,
               alignment: 'center',
             },
             // Right: Compact Config
@@ -123,22 +120,21 @@ export class PdfGeneratorService {
                     { text: 'Liczba elementów: ', bold: true },
                     `${boxesData.length}`
                   ],
-                  fontSize: 10
+                  fontSize: 10,
+                  margin: [0, 0, 0, 10]
                 },
                 {
-                   text: [
-                     { text: 'Całkowita masa: ', bold: true },
-                     `${totalMass.toFixed(1)} g`
-                   ],
-                   margin: [0, 10, 0, 2],
-                   fontSize: 10
+                  text: 'Kod konfiguracji:',
+                  bold: true,
+                  fontSize: 10,
+                  margin: [0, 0, 0, 2]
                 },
                 {
-                   text: [
-                     { text: 'Całkowity koszt: ', bold: true },
-                     `${totalPrice.toFixed(2)} PLN`
-                   ],
-                   style: 'totalPrice'
+                  text: configCode.match(/.{1,30}/g)?.join('\n') || configCode,
+                  fontSize: 9,
+                  fontFeatures: ['tnum'], // Tabular numbers if supported
+                  color: '#4b5563',
+                  background: '#f3f4f6',
                 }
               ]
             }
@@ -171,6 +167,7 @@ export class PdfGeneratorService {
                 { text: `${index + 1}`, style: 'tableCell' },
                 {
                   stack: [
+                    { text: data.box.name, style: 'boxName', margin: [0, 0, 0, 3] as [number, number, number, number] },
                     { text: `Wymiary: ${data.coords.width.toFixed(0)}mm × ${data.coords.depth.toFixed(0)}mm × ${data.coords.height.toFixed(0)}mm`, style: 'details' },
                     { text: `Kolor: ${this.getColorLabel(data.box.color)}`, style: 'details', margin: [0, 2, 0, 0] as [number, number, number, number] },
                   ],
@@ -190,7 +187,41 @@ export class PdfGeneratorService {
           margin: [0, 10, 0, 20],
         },
 
-
+        // Summary Section
+        {
+          stack: [
+            {
+              columns: [
+                { width: '*', text: '' },
+                {
+                  width: 200,
+                  table: {
+                    widths: ['*', 'auto'],
+                    body: [
+                      [
+                        { text: 'Całkowita masa:', style: 'summaryLabel', alignment: 'right' },
+                        { text: `${totalMass.toFixed(1)} g`, style: 'summaryValue', alignment: 'right' }
+                      ],
+                      [
+                        { text: 'Całkowity koszt:', style: 'summaryLabel', alignment: 'right', bold: true, margin: [0, 5, 0, 0] as [number, number, number, number] },
+                        { text: `${totalPrice.toFixed(2)} PLN`, style: 'summaryTotal', alignment: 'right', margin: [0, 5, 0, 0] as [number, number, number, number] }
+                      ]
+                    ]
+                  },
+                  layout: 'noBorders'
+                }
+              ]
+            },
+            {
+              text: 'Złóż zamówienie online',
+              link: APP_CONFIG.shopLink,
+              style: 'shopLink',
+              alignment: 'right',
+              margin: [0, 10, 0, 0]
+            }
+          ],
+          margin: [0, 0, 0, 20]
+        },
 
         // Footer note
         {
@@ -232,6 +263,11 @@ export class PdfGeneratorService {
           fontSize: 9,
           color: '#6b7280',
         },
+        boxName: {
+          fontSize: 10,
+          bold: true,
+          color: '#1f2937',
+        },
         summaryLabel: {
           fontSize: 11,
           color: '#374151',
@@ -255,6 +291,12 @@ export class PdfGeneratorService {
           color: '#9ca3af',
           italics: true,
         },
+        shopLink: {
+          fontSize: 12,
+          bold: true,
+          color: '#2563eb',
+          decoration: 'underline',
+        }
       },
     };
   }

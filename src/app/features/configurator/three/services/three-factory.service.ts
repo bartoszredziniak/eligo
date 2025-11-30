@@ -23,7 +23,11 @@ export class ThreeFactoryService implements OnDestroy {
 
   createDrawerWall(width: number, height: number, depth: number): THREE.Mesh {
     const geometry = new THREE.BoxGeometry(width, height, depth);
-    const material = new THREE.MeshStandardMaterial({ color: 0xeeeeee });
+    const material = new THREE.MeshStandardMaterial({ 
+      color: 0xd4a574, // warm wood tone
+      roughness: 0.6,
+      metalness: 0.0
+    });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -39,36 +43,38 @@ export class ThreeFactoryService implements OnDestroy {
     const group = new THREE.Group();
     const material = this.getBoxMaterial(color);
 
+    // Create geometries with more segments for smoother appearance
+    // This gives a subtle rounded/beveled edge effect
     const floor = this.createWallMesh(
-      new THREE.BoxGeometry(width, BOX_WALL_THICKNESS, depth),
+      new THREE.BoxGeometry(width, BOX_WALL_THICKNESS, depth, 2, 1, 2),
       material
     );
     floor.position.set(0, BOX_WALL_THICKNESS / 2, 0);
     group.add(floor);
 
     const left = this.createWallMesh(
-      new THREE.BoxGeometry(BOX_WALL_THICKNESS, height, depth),
+      new THREE.BoxGeometry(BOX_WALL_THICKNESS, height, depth, 1, 2, 2),
       material
     );
     left.position.set(-width / 2 + BOX_WALL_THICKNESS / 2, height / 2, 0);
     group.add(left);
 
     const right = this.createWallMesh(
-      new THREE.BoxGeometry(BOX_WALL_THICKNESS, height, depth),
+      new THREE.BoxGeometry(BOX_WALL_THICKNESS, height, depth, 1, 2, 2),
       material
     );
     right.position.set(width / 2 - BOX_WALL_THICKNESS / 2, height / 2, 0);
     group.add(right);
 
     const front = this.createWallMesh(
-      new THREE.BoxGeometry(width - 2 * BOX_WALL_THICKNESS, height, BOX_WALL_THICKNESS),
+      new THREE.BoxGeometry(width - 2 * BOX_WALL_THICKNESS, height, BOX_WALL_THICKNESS, 2, 2, 1),
       material
     );
     front.position.set(0, height / 2, depth / 2 - BOX_WALL_THICKNESS / 2);
     group.add(front);
 
     const back = this.createWallMesh(
-      new THREE.BoxGeometry(width - 2 * BOX_WALL_THICKNESS, height, BOX_WALL_THICKNESS),
+      new THREE.BoxGeometry(width - 2 * BOX_WALL_THICKNESS, height, BOX_WALL_THICKNESS, 2, 2, 1),
       material
     );
     back.position.set(0, height / 2, -depth / 2 + BOX_WALL_THICKNESS / 2);
@@ -77,18 +83,18 @@ export class ThreeFactoryService implements OnDestroy {
     return group;
   }
 
-  getBoxMaterial(color: BoxColor): THREE.Material {
+  getBoxMaterial(color: BoxColor): THREE.MeshStandardMaterial {
     if (!this.materials.has(color)) {
       const colorDef = BOX_COLORS.find((c) => c.value === color);
       const hex = colorDef ? colorDef.hex : '#ffffff';
       const material = new THREE.MeshStandardMaterial({
         color: new THREE.Color(hex),
-        roughness: 0.7,
-        metalness: 0.1,
+        roughness: 0.4,
+        metalness: 0.2,
       });
       this.materials.set(color, material);
     }
-    return this.materials.get(color)!;
+    return this.materials.get(color) as THREE.MeshStandardMaterial;
   }
 
   getErrorMaterial(): THREE.Material {
@@ -143,7 +149,7 @@ export class ThreeFactoryService implements OnDestroy {
     return sprite;
   }
 
-  createLabelMesh(text: string, maxWidth: number, maxDepth: number): THREE.Mesh | null {
+  createLabelMesh(text: string, maxWidth: number, maxDepth: number, boxColor: BoxColor): THREE.Mesh | null {
     if (!text) return null;
 
     const canvas = document.createElement('canvas');
@@ -169,7 +175,11 @@ export class ThreeFactoryService implements OnDestroy {
     context.clearRect(0, 0, canvas.width, canvas.height);
     
     context.font = font;
-    context.fillStyle = '#000000'; // Black text
+    
+    // Determine text color based on box color
+    const hexColor = this.getBoxMaterial(boxColor).color.getHexString();
+    context.fillStyle = this.getContrastColor(hexColor);
+    
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillText(text, canvas.width / 2, canvas.height / 2);
@@ -184,16 +194,14 @@ export class ThreeFactoryService implements OnDestroy {
       transparent: true,
       opacity: 0.9,
       side: THREE.DoubleSide,
-      depthTest: true,
-      depthWrite: false, // Don't write to depth buffer to avoid z-fighting issues with transparent objects
+      depthTest: false, // Disable depth testing so labels always render on top
+      depthWrite: false,
       polygonOffset: true,
-      polygonOffsetFactor: -2, // Pull towards camera significantly
-      polygonOffsetUnits: -2
+      polygonOffsetFactor: -4,
+      polygonOffsetUnits: -4
     });
 
     // Calculate plane size in world units (mm)
-    // We want the text to be legible but fit within the box
-    // Let's say 48px font corresponds to roughly 12mm height in world space
     const pixelToMmRatio = 0.25; 
     const planeWidth = canvas.width * pixelToMmRatio;
     const planeHeight = canvas.height * pixelToMmRatio;
@@ -210,6 +218,7 @@ export class ThreeFactoryService implements OnDestroy {
     
     mesh.name = 'label';
     mesh.rotation.x = -Math.PI / 2;
+    mesh.renderOrder = 1000; // High renderOrder ensures labels render on top
     
     // Cleanup function attached to mesh for disposal
     mesh.userData['dispose'] = () => {
@@ -219,6 +228,19 @@ export class ThreeFactoryService implements OnDestroy {
     };
 
     return mesh;
+  }
+
+  private getContrastColor(hex: string): string {
+    // Convert hex to RGB
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Calculate luminance
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    
+    // Return black or white based on luminance
+    return (yiq >= 128) ? '#000000' : '#ffffff';
   }
 
   ngOnDestroy(): void {

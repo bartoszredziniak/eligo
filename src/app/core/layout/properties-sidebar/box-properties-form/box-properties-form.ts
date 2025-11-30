@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, input, output, computed, inject } f
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { RadioButtonModule } from 'primeng/radiobutton';
+import { ListboxModule } from 'primeng/listbox';
 import { Select } from 'primeng/select';
 import { InputText } from 'primeng/inputtext';
 import { SidebarSection } from '../../../../shared/ui/sidebar-section/sidebar-section';
@@ -14,9 +14,10 @@ import { GridService } from '../../../services/grid.service';
 
 @Component({
   selector: 'eligo-box-properties-form',
-  imports: [CommonModule, FormsModule, ButtonModule, RadioButtonModule, Select, InputText, SidebarSection, GridUnitInput, MmInput],
+  imports: [CommonModule, FormsModule, ButtonModule, ListboxModule, Select, InputText, SidebarSection, GridUnitInput, MmInput],
   template: `
-    <eligo-sidebar-section title="Edycja Pudełka">
+    <eligo-sidebar-section>
+      <span header>Edycja Pudełka</span>
       <div class="flex flex-col gap-6">
         <!-- Presets Section -->
         <div class="flex flex-col gap-2">
@@ -120,35 +121,54 @@ import { GridService } from '../../../services/grid.service';
         <!-- Color Section -->
         <div class="flex flex-col gap-3">
           <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kolor</h4>
-          <div class="grid grid-cols-1 gap-2">
-            @for (color of availableColors; track color.value) {
-              <div class="flex items-center gap-2 p-2 rounded border transition-colors"
-                   [class.border-primary]="box().color === color.value"
-                   [class.bg-blue-50]="box().color === color.value">
-                <p-radioButton
-                  [inputId]="'color-' + color.value"
-                  [value]="color.value"
-                  [ngModel]="box().color"
-                  (ngModelChange)="colorChange.emit($event)"
-                />
-                <div class="w-6 h-6 rounded border border-gray-300"
+          <p-listbox
+            [options]="availableColors"
+            [ngModel]="box().color"
+            (ngModelChange)="colorChange.emit($event)"
+            optionLabel="label"
+            optionValue="value"
+            [listStyle]="{'max-height': '250px'}"
+            styleClass="w-full"
+          >
+            <ng-template let-color pTemplate="item">
+              <div class="flex items-center gap-3">
+                <div class="w-6 h-6 rounded-md border border-surface-300 shadow-sm"
                      [style.background-color]="color.hex">
                 </div>
-                <label [for]="'color-' + color.value" class="text-sm font-medium cursor-pointer flex-1">
-                  {{ color.label }}
-                </label>
+                <span>{{ color.label }}</span>
               </div>
-            }
-          </div>
+            </ng-template>
+          </p-listbox>
         </div>
 
-        <!-- Delete Button -->
-        <p-button
-          label="Usuń Pudełko"
-          severity="danger"
-          (onClick)="deleteBox.emit()"
-          styleClass="w-full"
-        />
+        <!-- Actions Section -->
+        <div class="flex flex-col gap-2 mt-2">
+          <div class="grid grid-cols-2 gap-2">
+            <p-button
+              label="Duplikuj"
+              icon="pi pi-copy"
+              severity="secondary"
+              outlined="true"
+              (onClick)="duplicate.emit()"
+              styleClass="w-full"
+            />
+            <p-button
+              label="Obróć"
+              icon="pi pi-refresh"
+              severity="secondary"
+              outlined="true"
+              (onClick)="rotate.emit()"
+              styleClass="w-full"
+            />
+          </div>
+          
+          <p-button
+            label="Usuń Pudełko"
+            severity="danger"
+            (onClick)="deleteBox.emit()"
+            styleClass="w-full"
+          />
+        </div>
       </div>
     </eligo-sidebar-section>
   `,
@@ -204,6 +224,8 @@ export class BoxPropertiesForm {
   heightChange = output<number>();
   colorChange = output<BoxColor>();
   nameChange = output<string>();
+  duplicate = output<void>();
+  rotate = output<void>();
   deleteBox = output<void>();
 
   applyPreset(preset: BoxPreset | null) {

@@ -1,6 +1,8 @@
-import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
+import { ListboxModule } from 'primeng/listbox';
 import { UiSidebar } from '../../../shared/ui/ui-sidebar/ui-sidebar';
 import { SidebarSection } from '../../../shared/ui/sidebar-section/sidebar-section';
 import { ConfiguratorStateService } from '../../services/configurator-state.service';
@@ -12,10 +14,11 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 
 @Component({
   selector: 'eligo-tools-sidebar',
-  imports: [CommonModule, ButtonModule, UiSidebar, SidebarSection, ValidationErrorsPanel, EmptyState],
+  imports: [CommonModule, FormsModule, ButtonModule, ListboxModule, UiSidebar, SidebarSection, ValidationErrorsPanel, EmptyState],
   template: `
     <eligo-ui-sidebar>
-      <eligo-sidebar-section title="Narzędzia">
+      <eligo-sidebar-section>
+        <span header>Narzędzia</span>
         <div class="flex flex-col gap-2">
           <p-button
             label="Dodaj Pudełko"
@@ -26,19 +29,66 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
         </div>
       </eligo-sidebar-section>
 
-      <eligo-sidebar-section title="Lista Elementów">
+      <eligo-sidebar-section>
+        <span header>Lista Elementów</span>
         <div class="flex flex-col gap-2">
-          <!-- Drawer Item -->
-          <button
-            type="button"
-            class="w-full p-2 border rounded cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center"
-            [class.border-primary]="stateService.selectedBoxId() === null"
-            [class.bg-blue-50]="stateService.selectedBoxId() === null"
-            (click)="stateService.selectBox(null)"
+          <p-listbox
+            [options]="items()"
+            [ngModel]="stateService.selectedBoxId()"
+            (ngModelChange)="stateService.selectBox($event)"
+            optionLabel="name"
+            optionValue="id"
+            styleClass="w-full border-none p-0"
+            [listStyle]="{'max-height': 'calc(100vh - 300px)'}"
           >
-            <span class="text-sm font-medium">Szuflada</span>
-            <i class="pi pi-box"></i>
-          </button>
+            <ng-template let-item pTemplate="item">
+              <div class="flex items-center justify-between w-full gap-2">
+                <div class="flex items-center gap-2 flex-1 min-w-0">
+                  @if (item.type === 'drawer') {
+                    <span class="text-sm font-medium">Szuflada</span>
+                    <i class="pi pi-box ml-auto text-surface-400"></i>
+                  } @else {
+                    @if (editingBoxId() === item.id) {
+                      <input
+                        type="text"
+                        [value]="item.name"
+                        class="w-full text-sm p-1 border rounded"
+                        (click)="$event.stopPropagation()"
+                        (blur)="saveName($event, item.id)"
+                        (keydown.enter)="saveName($event, item.id)"
+                        (keydown.escape)="cancelEditing()"
+                        autoFocus
+                      />
+                    } @else {
+                      <span
+                        class="text-sm font-medium truncate"
+                        (dblclick)="startEditing($event, item.id)"
+                        title="Kliknij dwukrotnie aby zmienić nazwę"
+                      >
+                        {{ item.name }}
+                      </span>
+                    }
+                    @if (getBoxError(item.id); as error) {
+                      @if (error.type === 'collision') {
+                        <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
+                      } @else if (error.type === 'boundary') {
+                        <i class="pi pi-arrows-alt text-orange-500 text-xs" title="Wystaje poza szufladę - kliknij aby przesunąć"></i>
+                      } @else if (error.type === 'oversized') {
+                        <i class="pi pi-ban text-red-500 text-xs" title="Za duże - zmień rozmiar"></i>
+                      }
+                    }
+                  }
+                </div>
+                
+                @if (item.type === 'box') {
+                  <div
+                    class="w-5 h-5 rounded border-2 border-surface-300 shadow-sm"
+                    [style.background-color]="getBoxColorHex(item.color)"
+                  ></div>
+                }
+              </div>
+            </ng-template>
+          </p-listbox>
 
           @if (drawerService.boxes().length === 0) {
             <eligo-empty-state
@@ -47,54 +97,30 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
               header="Brak pudełek"
               description="Dodaj pudełko aby rozpocząć"
             />
-          } @else {
-            @for (box of drawerService.boxes(); track box.id) {
-              <button
-                type="button"
-                class="w-full p-2 border rounded cursor-pointer hover:bg-gray-50 transition-colors flex justify-between items-center"
-                [class.border-primary]="stateService.selectedBoxId() === box.id"
-                [class.bg-blue-50]="stateService.selectedBoxId() === box.id"
-                (click)="stateService.selectBox(box.id)"
-              >
-                <div class="flex items-center gap-2 flex-1 min-w-0">
-                    @if (editingBoxId() === box.id) {
-                      <input
-                        type="text"
-                        [value]="box.name"
-                        class="w-full text-sm p-1 border rounded"
-                        (click)="$event.stopPropagation()"
-                        (blur)="saveName($event, box.id)"
-                        (keydown.enter)="saveName($event, box.id)"
-                        (keydown.escape)="cancelEditing()"
-                        autoFocus
-                      />
-                    } @else {
-                      <span
-                        class="text-sm font-medium truncate"
-                        (dblclick)="startEditing($event, box.id)"
-                        title="Kliknij dwukrotnie aby zmienić nazwę"
-                      >
-                        {{ box.name }}
-                      </span>
-                    }
-                    @if (drawerService.collisions().has(box.id)) {
-                      <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
-                    }
-                  </div>
-                <div
-                  class="w-4 h-4 rounded border"
-                  [style.background-color]="getBoxColorHex(box.color)"
-                ></div>
-              </button>
-            }
           }
         </div>
       </eligo-sidebar-section>
 
-      <eligo-validation-errors-panel [count]="drawerService.collisions().size" />
+      <eligo-validation-errors-panel [errors]="drawerService.validationErrors()" />
     </eligo-ui-sidebar>
   `,
-  styles: [],
+  styles: [`
+    :host ::ng-deep .p-listbox {
+      border: none;
+      padding: 0;
+    }
+    :host ::ng-deep .p-listbox .p-listbox-list .p-listbox-item {
+      padding: 0.75rem;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      border: 1px solid transparent;
+    }
+    :host ::ng-deep .p-listbox .p-listbox-list .p-listbox-item.p-highlight {
+      background: var(--primary-50);
+      color: var(--primary-700);
+      border-color: var(--primary-500);
+    }
+  `],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 
@@ -103,6 +129,18 @@ export class ToolsSidebar {
   protected readonly drawerService = inject(DrawerService);
 
   editingBoxId = signal<string | null>(null);
+
+  items = computed(() => {
+    const drawerItem = { id: null, name: 'Szuflada', type: 'drawer', color: null };
+    const boxes = this.drawerService.boxes().map(box => ({
+      id: box.id,
+      name: box.name,
+      type: 'box',
+      color: box.color,
+      box: box
+    }));
+    return [drawerItem, ...boxes];
+  });
 
   addBox() {
     this.stateService.startAddingBox();
@@ -130,9 +168,15 @@ export class ToolsSidebar {
     this.stateService.finishAddingBox();
   }
 
-  getBoxColorHex(colorName: string): string {
+  getBoxColorHex(colorName: string | null | undefined): string {
+    if (!colorName) return '#ffffff';
     const colorDef = BOX_COLORS.find((c) => c.value === colorName);
     return colorDef?.hex || '#ffffff';
+  }
+
+  getBoxError(boxId: string | null) {
+    if (!boxId) return undefined;
+    return this.drawerService.validationErrors().find(e => e.boxId === boxId);
   }
 
   startEditing(event: MouseEvent, boxId: string) {

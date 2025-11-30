@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, inject, ViewChild, Injector } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, ViewChild, Injector, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { UiLayout } from '../../../../shared/ui/ui-layout/ui-layout';
 import { Header } from '../../../../core/layout/header/header';
@@ -9,6 +9,8 @@ import { CanvasStage } from '../../components/canvas-stage/canvas-stage';
 import { DrawerService } from '../../../../core/services/drawer.service';
 import { ConfiguratorStateService } from '../../../../core/services/configurator-state.service';
 import { PdfGeneratorService } from '../../../../core/services/pdf-generator.service';
+import { HelpDialogComponent } from '../../components/help-dialog/help-dialog.component';
+import { RestoreConfigDialogComponent } from '../../components/restore-config-dialog/restore-config-dialog.component';
 
 @Component({
   selector: 'eligo-configurator-page',
@@ -20,11 +22,17 @@ import { PdfGeneratorService } from '../../../../core/services/pdf-generator.ser
     PropertiesSidebar,
     SummaryBar,
     CanvasStage,
+    HelpDialogComponent,
+    RestoreConfigDialogComponent,
   ],
   template: `
     <eligo-ui-layout>
       <!-- Header -->
-      <eligo-header header />
+      <eligo-header 
+        header 
+        (helpClicked)="helpVisible.set(true)"
+        (restoreClicked)="restoreVisible.set(true)"
+      />
 
       <!-- Left Sidebar -->
       <eligo-tools-sidebar sidebarLeft />
@@ -40,9 +48,13 @@ import { PdfGeneratorService } from '../../../../core/services/pdf-generator.ser
         footer
         [price]="drawerService.totalPrice()"
         [weight]="drawerService.totalWeight()"
+        [configCode]="drawerService.configCode()"
         (generateOrder)="onGenerateOrder()"
       />
     </eligo-ui-layout>
+
+    <eligo-help-dialog [(visible)]="helpVisible" />
+    <eligo-restore-config-dialog [(visible)]="restoreVisible" />
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -53,6 +65,9 @@ export class ConfiguratorPage {
   protected readonly drawerService = inject(DrawerService);
   protected readonly stateService = inject(ConfiguratorStateService);
   private readonly injector = inject(Injector);
+
+  protected readonly helpVisible = signal(false);
+  protected readonly restoreVisible = signal(false);
 
   async onGenerateOrder(): Promise<void> {
     if (!this.canvasStage) {
@@ -70,7 +85,8 @@ export class ConfiguratorPage {
     await pdfGenerator.generateOrderPdf(
       this.drawerService.drawerConfig(),
       this.drawerService.boxes(),
-      drawerImage
+      drawerImage,
+      this.drawerService.generateConfigCode()
     );
   }
 }

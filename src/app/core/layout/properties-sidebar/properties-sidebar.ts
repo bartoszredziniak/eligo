@@ -32,6 +32,8 @@ import { BoxColor } from '../../models/drawer.models';
               (heightChange)="updateBoxHeight(box.id, $event)"
               (colorChange)="updateBoxColor(box.id, $event)"
               (nameChange)="updateBoxName(box.id, $event)"
+              (duplicate)="duplicateBox(box.id)"
+              (rotate)="rotateBox(box.id)"
               (deleteBox)="removeBox(box.id)"
             />
           }
@@ -97,6 +99,14 @@ export class PropertiesSidebar {
   removeBox(id: string) {
     this.drawerService.removeBox(id);
     this.stateService.selectBox(null);
+  }
+
+  duplicateBox(id: string) {
+    this.drawerService.duplicateBox(id);
+  }
+
+  rotateBox(id: string) {
+    this.drawerService.rotateBox(id);
   }
 
   deselectBox() {

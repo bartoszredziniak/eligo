@@ -1,19 +1,15 @@
 import { Component, ChangeDetectionStrategy, input } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { AccordionModule } from 'primeng/accordion';
 
 @Component({
   selector: 'eligo-sidebar-section',
-  imports: [CommonModule, AccordionModule],
+  imports: [AccordionModule],
   template: `
     <p-accordion [value]="defaultExpanded() ? '0' : ''">
       <p-accordion-panel value="0">
-        <p-accordion-header [class]="headerClass()">
-          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider w-full" [class]="headerClass()">
+        <p-accordion-header>
+          <span class="text-xs font-semibold text-gray-500 uppercase tracking-wider w-full">
             <ng-content select="[header]" />
-            @if (!hasHeaderContent()) {
-              {{ title() }}
-            }
           </span>
         </p-accordion-header>
         <p-accordion-content>
@@ -43,7 +39,7 @@ import { AccordionModule } from 'primeng/accordion';
         background: transparent;
         border: none;
         padding: 0;
-        flex-direction: row-reverse; /* Icon on right */
+        flex-direction: row-reverse;
         justify-content: space-between;
         gap: 0.5rem;
       }
@@ -55,16 +51,12 @@ import { AccordionModule } from 'primeng/accordion';
       }
       :host ::ng-deep .p-accordion-toggle-icon {
         font-size: 0.75rem;
-        color: #9ca3af; /* gray-400 */
+        color: #9ca3af;
       }
     `,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SidebarSection {
-  title = input('');
-  collapsible = input(true);
   defaultExpanded = input(true);
-  headerClass = input('');
-  hasHeaderContent = input(false);
 }

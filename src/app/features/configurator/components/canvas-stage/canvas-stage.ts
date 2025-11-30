@@ -7,7 +7,10 @@ import {
   OnDestroy,
   inject,
   effect,
+  PLATFORM_ID,
+  signal,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
 import * as THREE from 'three';
 import { ThreeSceneFacade } from '../../three/three-scene.facade';
@@ -20,11 +23,24 @@ import { GridService } from '../../../../core/services/grid.service';
 import { ThreeFactoryService } from '../../three/services/three-factory.service';
 import { DrawerConfig } from '../../../../core/models/drawer.models';
 
-import { PanelModule } from 'primeng/panel';
+import { ToolbarModule } from 'primeng/toolbar';
+import { ButtonModule } from 'primeng/button';
+import { PopoverModule } from 'primeng/popover';
+import { ContextMenuModule } from 'primeng/contextmenu';
+import { TooltipModule } from 'primeng/tooltip';
+import { MenuItem } from 'primeng/api';
+import { ContextMenu } from 'primeng/contextmenu';
 
 @Component({
   selector: 'eligo-canvas-stage',
-  imports: [CommonModule, PanelModule],
+  imports: [
+    CommonModule, 
+    ToolbarModule, 
+    ButtonModule, 
+    PopoverModule, 
+    ContextMenuModule,
+    TooltipModule
+  ],
   template: `
     <div
       #canvasContainer
@@ -33,27 +49,77 @@ import { PanelModule } from 'primeng/panel';
       (mousemove)="onMouseMove($event)"
       (mouseup)="onMouseUp()"
       (mouseleave)="onMouseUp()"
+      (contextmenu)="$event.preventDefault()"
     >
       <!-- Canvas will be injected here by Three.js -->
       
-      <div class="absolute bottom-4 right-4 z-10 w-64 opacity-90 hover:opacity-100 transition-opacity">
-        <p-panel header="Sterowanie 3D" [toggleable]="true" [collapsed]="true" styleClass="text-sm">
-          <ul class="list-none p-0 m-0 text-sm space-y-2">
-            <li class="flex items-center gap-2">
-              <i class="pi pi-sync text-primary"></i>
-              <span>Obracanie: Lewy Przycisk</span>
+      <!-- Toolbar at the bottom -->
+      <div class="absolute bottom-0 left-0 right-0 z-10">
+        <p-toolbar styleClass="border-none rounded-none bg-white/90 backdrop-blur-sm border-t border-surface-200 px-4 py-2">
+          <div class="p-toolbar-group-start"></div>
+          
+          <div class="p-toolbar-group-center">
+            <p-button 
+              label="Resetuj widok" 
+              icon="pi pi-refresh" 
+              severity="secondary" 
+              [text]="true"
+              (onClick)="resetView()"
+              pTooltip="Ustaw widok z góry"
+            />
+          </div>
+
+          <div class="p-toolbar-group-end">
+            <p-button 
+              icon="pi pi-question-circle" 
+              [rounded]="true" 
+              [text]="true" 
+              severity="secondary"
+              (onClick)="helpOp.toggle($event)"
+              pTooltip="Instrukcja sterowania"
+            />
+          </div>
+        </p-toolbar>
+      </div>
+
+      <!-- Help Popover -->
+      <p-popover #helpOp>
+        <div class="p-3 w-64">
+          <h4 class="m-0 mb-3 font-semibold text-surface-900">Sterowanie 3D</h4>
+          <ul class="list-none p-0 m-0 text-sm space-y-3">
+            <li class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-primary">
+                <i class="pi pi-sync"></i>
+              </div>
+              <div>
+                <div class="font-medium text-surface-900">Obracanie</div>
+                <div class="text-surface-500 text-xs">Lewy przycisk myszy</div>
+              </div>
             </li>
-            <li class="flex items-center gap-2">
-              <i class="pi pi-arrows-alt text-primary"></i>
-              <span>Przesuwanie: Prawy Przycisk</span>
+            <li class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-primary">
+                <i class="pi pi-arrows-alt"></i>
+              </div>
+              <div>
+                <div class="font-medium text-surface-900">Przesuwanie</div>
+                <div class="text-surface-500 text-xs">Prawy przycisk myszy</div>
+              </div>
             </li>
-            <li class="flex items-center gap-2">
-              <i class="pi pi-search-plus text-primary"></i>
-              <span>Przybliżanie: Rolka</span>
+            <li class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center text-primary">
+                <i class="pi pi-search-plus"></i>
+              </div>
+              <div>
+                <div class="font-medium text-surface-900">Przybliżanie</div>
+                <div class="text-surface-500 text-xs">Rolka myszy</div>
+              </div>
             </li>
           </ul>
-        </p-panel>
-      </div>
+        </div>
+      </p-popover>
+
+      <!-- Context Menu -->
+      <p-contextMenu #contextMenu [model]="menuItems()" appendTo="body" />
     </div>
   `,
   styles: [
@@ -78,11 +144,13 @@ import { PanelModule } from 'primeng/panel';
 })
 export class CanvasStage implements AfterViewInit, OnDestroy {
   @ViewChild('canvasContainer') canvasContainer!: ElementRef<HTMLElement>;
+  @ViewChild('contextMenu') contextMenu!: ContextMenu;
 
   private readonly drawerService = inject(DrawerService);
   private readonly stateService = inject(ConfiguratorStateService);
   private readonly factoryService = inject(ThreeFactoryService);
   private readonly gridService = inject(GridService);
+  private readonly platformId = inject(PLATFORM_ID);
 
   private facade!: ThreeSceneFacade;
   private drawerVisualizer!: DrawerVisualizer;
@@ -90,6 +158,8 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   private interactionManager!: InteractionManager;
 
   private resizeObserver!: ResizeObserver;
+
+  protected readonly menuItems = signal<MenuItem[]>([]);
 
   constructor() {
     effect(() => {
@@ -109,19 +179,37 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     effect(() => {
       const boxes = this.drawerService.boxes();
       const selectedId = this.stateService.selectedBoxId();
-      const collisions = this.drawerService.collisions();
+      const errors = this.drawerService.validationErrors();
+      
       if (this.boxVisualizer) {
-        this.boxVisualizer.update(boxes, selectedId, collisions);
+        this.boxVisualizer.update(boxes, selectedId, errors);
+      }
+
+      if (this.interactionManager) {
+        const oversizedIds = new Set<string>();
+        errors.forEach(e => {
+          if (e.type === 'oversized') {
+            oversizedIds.add(e.boxId);
+          }
+        });
+        this.interactionManager.setOversizedBoxes(oversizedIds);
       }
     });
   }
 
   ngAfterViewInit(): void {
-    this.initThree();
-    this.initResizeObserver();
+    // Only initialize Three.js in the browser, not during SSR
+    if (isPlatformBrowser(this.platformId)) {
+      this.initThree();
+      this.initResizeObserver();
+    }
   }
 
   ngOnDestroy(): void {
+    if (!isPlatformBrowser(this.platformId)) {
+      return;
+    }
+    
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
     }
@@ -150,6 +238,12 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     this.interactionManager.onPointerUp();
   }
 
+  resetView(): void {
+    if (this.facade) {
+      this.facade.resetCamera();
+    }
+  }
+
   private initThree(): void {
     const container = this.canvasContainer.nativeElement;
 
@@ -176,6 +270,47 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       this.drawerService.updateBox(event.id, { x: event.x, y: event.y });
     });
 
+    this.interactionManager.boxClicked$.subscribe((boxId) => {
+      // Check if box has boundary error
+      const errors = this.drawerService.validationErrors();
+      const boundaryError = errors.find(e => e.boxId === boxId && e.type === 'boundary');
+      
+      if (boundaryError) {
+        this.drawerService.repositionBox(boxId);
+      }
+    });
+
+    this.interactionManager.boxContextMenu$.subscribe(({ boxId, event }) => {
+      this.stateService.selectBox(boxId);
+      
+      this.menuItems.set([
+        {
+          label: 'Duplikuj',
+          icon: 'pi pi-copy',
+          command: () => this.drawerService.duplicateBox(boxId)
+        },
+        {
+          label: 'Obróć',
+          icon: 'pi pi-refresh',
+          command: () => this.drawerService.rotateBox(boxId)
+        },
+        {
+          separator: true
+        },
+        {
+          label: 'Usuń',
+          icon: 'pi pi-trash',
+          styleClass: 'text-red-500',
+          command: () => {
+            this.drawerService.removeBox(boxId);
+            this.stateService.selectBox(null);
+          }
+        }
+      ]);
+
+      this.contextMenu.show(event);
+    });
+
     this.interactionManager.dragStart$.subscribe(() => {
       this.facade.enableControls(false);
     });
@@ -195,7 +330,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     this.boxVisualizer.update(
       this.drawerService.boxes(),
       this.stateService.selectedBoxId(),
-      this.drawerService.collisions()
+      this.drawerService.validationErrors()
     );
     this.updateControlsForConfig(config);
   }

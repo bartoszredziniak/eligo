@@ -2,7 +2,7 @@
  * Constants for 3D scene configuration
  */
 
-export const BOX_WALL_THICKNESS = 2;
+export const BOX_WALL_THICKNESS = 3;
 export const DRAWER_WALL_THICKNESS = 16;
 
 /**

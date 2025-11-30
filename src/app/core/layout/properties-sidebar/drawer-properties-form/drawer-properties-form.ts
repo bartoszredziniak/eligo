@@ -9,7 +9,8 @@ import { GridService } from '../../../services/grid.service';
   selector: 'eligo-drawer-properties-form',
   imports: [CommonModule, SidebarSection, MmInput],
   template: `
-    <eligo-sidebar-section title="Ustawienia Szuflady">
+    <eligo-sidebar-section>
+      <span header>Ustawienia Szuflady</span>
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
           <label for="drawer-width" class="text-sm font-medium text-gray-700">Szerokość</label>

@@ -11,8 +11,14 @@ export class InteractionManager {
   private _boxSelected = new Subject<string | null>();
   boxSelected$ = this._boxSelected.asObservable();
 
+  private _boxClicked = new Subject<string>();
+  boxClicked$ = this._boxClicked.asObservable();
+
   private _boxDrag = new Subject<{ id: string; x: number; y: number }>();
   boxDrag$ = this._boxDrag.asObservable();
+
+  private _boxContextMenu = new Subject<{ boxId: string; event: MouseEvent }>();
+  boxContextMenu$ = this._boxContextMenu.asObservable();
 
   private _dragStart = new Subject<void>();
   dragStart$ = this._dragStart.asObservable();
@@ -24,6 +30,7 @@ export class InteractionManager {
   private draggedBoxId: string | null = null;
   private dragOffset = new THREE.Vector3();
   private drawerDimensions = { width: 0, depth: 0 };
+  private oversizedBoxIds = new Set<string>();
 
   constructor(
     private readonly camera: THREE.Camera,
@@ -35,6 +42,10 @@ export class InteractionManager {
     this.drawerDimensions = { width, depth };
   }
 
+  setOversizedBoxes(ids: Set<string>): void {
+    this.oversizedBoxIds = ids;
+  }
+
   onPointerDown(event: MouseEvent, rect: DOMRect): void {
     this.updateMouse(event, rect);
     this.raycaster.setFromCamera(this.mouse, this.camera);
@@ -42,7 +53,21 @@ export class InteractionManager {
     const { boxId, boxObject, intersectionPoint } = this.findBoxByRaycast();
 
     if (boxId && boxObject && intersectionPoint) {
-      this.startDrag(boxId, boxObject, intersectionPoint);
+      // Handle Right Click (Context Menu)
+      if (event.button === 2) {
+        event.preventDefault();
+        this._boxContextMenu.next({ boxId, event });
+        return;
+      }
+
+      // Always emit click event first
+      this._boxClicked.next(boxId);
+
+      // Only allow drag if not oversized
+      if (!this.oversizedBoxIds.has(boxId)) {
+        this.startDrag(boxId, boxObject, intersectionPoint);
+      }
+      
       this._boxSelected.next(boxId);
     } else {
       this._boxSelected.next(null);
