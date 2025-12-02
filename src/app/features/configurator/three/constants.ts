@@ -20,4 +20,13 @@ export const USER_DATA_KEYS = {
   WIDTH: 'width',
   DEPTH: 'depth',
   HIGHLIGHT: 'highlight',
+  IS_HANDLE: 'isHandle',
+  HANDLE_SIDE: 'handleSide',
 } as const;
+
+export enum HandleSide {
+  TOP = 'top',
+  BOTTOM = 'bottom',
+  LEFT = 'left',
+  RIGHT = 'right',
+}

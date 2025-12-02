@@ -3,7 +3,7 @@ import { Box, BoxColor } from '../../../../core/models/drawer.models';
 import { BoxValidationError } from '../../../../core/models/validation.models';
 import { ThreeFactoryService } from '../services/three-factory.service';
 import { GridService } from '../../../../core/services/grid.service';
-import { USER_DATA_KEYS } from '../constants';
+import { USER_DATA_KEYS, HandleSide } from '../constants';
 
 export class BoxMeshPool {
   private available: THREE.Mesh[] = [];
@@ -179,11 +179,12 @@ export class BoxMeshPool {
   ): void {
     // Handle Selection Highlight
     this.handleHighlight(mesh, widthMm, heightMm, depthMm, isSelected);
+    this.handleHandles(mesh, widthMm, heightMm, depthMm, isSelected);
 
     // Handle Error State (Red Color Overlay or Material Swap)
     const group = mesh as unknown as THREE.Group;
     group.children.forEach((child) => {
-      if (child.name === USER_DATA_KEYS.HIGHLIGHT || child.name === 'label') return;
+      if (child.name === USER_DATA_KEYS.HIGHLIGHT || child.name === 'label' || child.userData[USER_DATA_KEYS.IS_HANDLE]) return;
       
       const meshChild = child as THREE.Mesh;
       if (error) {
@@ -218,6 +219,59 @@ export class BoxMeshPool {
       highlight.position.set(0, heightMm / 2, 0);
       mesh.add(highlight);
     }
+  }
+
+  private handleHandles(
+    mesh: THREE.Mesh,
+    widthMm: number,
+    heightMm: number,
+    depthMm: number,
+    isSelected: boolean
+  ): void {
+    // Remove existing handles
+    const existingHandles = mesh.children.filter((c) => c.userData[USER_DATA_KEYS.IS_HANDLE]);
+    existingHandles.forEach((handle) => {
+      mesh.remove(handle);
+      if (handle instanceof THREE.Mesh || handle instanceof THREE.Sprite) {
+        if (handle instanceof THREE.Mesh && handle.geometry) handle.geometry.dispose();
+        if (handle.material) {
+          if (Array.isArray(handle.material)) {
+            handle.material.forEach((m: THREE.Material) => m.dispose());
+          } else {
+            handle.material.dispose();
+          }
+          if (handle.material instanceof THREE.SpriteMaterial || handle.material instanceof THREE.MeshStandardMaterial || handle.material instanceof THREE.MeshBasicMaterial) {
+             if (handle.material.map) handle.material.map.dispose();
+          }
+        }
+      }
+    });
+
+    if (isSelected) {
+      const halfWidth = widthMm / 2;
+      const halfDepth = depthMm / 2;
+      const yPos = heightMm / 2;
+
+      // Top (Back in 3D space relative to camera usually, but let's stick to Top/Bottom/Left/Right in 2D plan view)
+      // Actually, let's map:
+      // Top (Z-) -> Back
+      // Bottom (Z+) -> Front
+      // Left (X-) -> Left
+      // Right (X+) -> Right
+
+      this.addHandle(mesh, 0, yPos, -halfDepth, HandleSide.TOP);
+      this.addHandle(mesh, 0, yPos, halfDepth, HandleSide.BOTTOM);
+      this.addHandle(mesh, -halfWidth, yPos, 0, HandleSide.LEFT);
+      this.addHandle(mesh, halfWidth, yPos, 0, HandleSide.RIGHT);
+    }
+  }
+
+  private addHandle(parent: THREE.Mesh, x: number, y: number, z: number, side: HandleSide): void {
+    const handle = this.factory.createResizeHandle(side);
+    handle.position.set(x, y, z);
+    handle.userData[USER_DATA_KEYS.IS_HANDLE] = true;
+    handle.userData[USER_DATA_KEYS.HANDLE_SIDE] = side;
+    parent.add(handle);
   }
 
   private disposeGeometries(objects: THREE.Object3D[]): void {

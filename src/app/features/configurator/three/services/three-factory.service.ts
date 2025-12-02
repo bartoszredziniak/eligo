@@ -1,7 +1,7 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import * as THREE from 'three';
 import { BoxColor, BOX_COLORS } from '../../../../core/models/drawer.models';
-import { BOX_WALL_THICKNESS } from '../constants';
+import { BOX_WALL_THICKNESS, HandleSide } from '../constants';
 
 @Injectable({
   providedIn: 'root',
@@ -114,6 +114,96 @@ export class ThreeFactoryService implements OnDestroy {
     const geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(width, height, depth));
     const material = new THREE.LineBasicMaterial({ color: 0x3b82f6, linewidth: 2 });
     return new THREE.LineSegments(geometry, material);
+  }
+
+  createResizeHandle(side: HandleSide): THREE.Mesh {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    const size = 128; // Increased resolution
+    canvas.width = size;
+    canvas.height = size;
+
+    if (context) {
+      // Draw circle background with shadow effect
+      const center = size / 2;
+      const radius = size / 2 - 4;
+
+      context.shadowColor = 'rgba(0, 0, 0, 0.2)';
+      context.shadowBlur = 4;
+      context.shadowOffsetX = 0;
+      context.shadowOffsetY = 2;
+
+      context.beginPath();
+      context.arc(center, center, radius, 0, 2 * Math.PI);
+      context.fillStyle = '#ffffff';
+      context.fill();
+      
+      // Reset shadow for stroke
+      context.shadowColor = 'transparent';
+      context.lineWidth = 3;
+      context.strokeStyle = '#e5e7eb'; // light gray border
+      context.stroke();
+
+      // Draw arrows
+      context.fillStyle = '#3b82f6'; // Primary blue
+      
+      context.save();
+      context.translate(center, center);
+
+      // Rotate based on side
+      if (side === HandleSide.TOP || side === HandleSide.BOTTOM) {
+        context.rotate(Math.PI / 2);
+      }
+
+      // Draw filled double arrow
+      const arrowLength = 24;
+      const arrowWidth = 16;
+      const stemWidth = 6;
+      const stemLength = 12;
+
+      context.beginPath();
+      
+      // Left Arrow
+      context.moveTo(-stemLength, -stemWidth/2); // Top of stem start
+      context.lineTo(-stemLength, -arrowWidth/2); // Top of arrow base
+      context.lineTo(-arrowLength - stemLength, 0); // Tip
+      context.lineTo(-stemLength, arrowWidth/2); // Bottom of arrow base
+      context.lineTo(-stemLength, stemWidth/2); // Bottom of stem start
+      
+      // Right Arrow
+      context.lineTo(stemLength, stemWidth/2); // Bottom of stem end
+      context.lineTo(stemLength, arrowWidth/2); // Bottom of arrow base
+      context.lineTo(arrowLength + stemLength, 0); // Tip
+      context.lineTo(stemLength, -arrowWidth/2); // Top of arrow base
+      context.lineTo(stemLength, -stemWidth/2); // Top of stem end
+      
+      context.closePath();
+      context.fill();
+      
+      context.restore();
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
+    
+    const material = new THREE.MeshBasicMaterial({ 
+      map: texture, 
+      depthTest: false, 
+      depthWrite: false,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    
+    // Use PlaneGeometry instead of Sprite
+    const geometry = new THREE.PlaneGeometry(24, 24);
+    const mesh = new THREE.Mesh(geometry, material);
+    
+    // Rotate to lie flat on XZ plane
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.renderOrder = 999;
+    
+    return mesh;
   }
 
   createLabelSprite(text: string): THREE.Sprite {

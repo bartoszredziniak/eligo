@@ -270,6 +270,15 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       this.drawerService.updateBox(event.id, { x: event.x, y: event.y });
     });
 
+    this.interactionManager.boxResize$.subscribe((event) => {
+      this.drawerService.updateBox(event.id, { 
+        width: event.width, 
+        depth: event.depth,
+        x: event.x,
+        y: event.y
+      });
+    });
+
     this.interactionManager.boxClicked$.subscribe((boxId) => {
       // Check if box has boundary error
       const errors = this.drawerService.validationErrors();

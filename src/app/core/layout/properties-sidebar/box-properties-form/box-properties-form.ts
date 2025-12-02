@@ -43,6 +43,7 @@ import { GridService } from '../../../services/grid.service';
             [ngModel]="box().name"
             (ngModelChange)="nameChange.emit($event)"
             class="w-full"
+            pSize="small"
           />
         </div>
 
