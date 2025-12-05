@@ -11,6 +11,7 @@ export class ThreeSceneFacade {
   constructor(private readonly container: HTMLElement) {}
 
   init(): void {
+    console.log('ThreeSceneFacade: init');
     this.initScene();
     this.initCamera();
     this.initRenderer();
@@ -43,11 +44,14 @@ export class ThreeSceneFacade {
   }
 
   private initRenderer(): void {
+    console.log('ThreeSceneFacade: initRenderer - Container:', this.container);
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setSize(this.container.clientWidth, this.container.clientHeight);
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.shadowMap.enabled = true;
+    console.log('ThreeSceneFacade: initRenderer - Appending canvas to container');
     this.container.appendChild(this.renderer.domElement);
+    console.log('ThreeSceneFacade: initRenderer - Canvas appended, children count:', this.container.children.length);
   }
 
   private initControls(): void {
@@ -128,6 +132,7 @@ export class ThreeSceneFacade {
   }
 
   dispose(): void {
+    console.log('ThreeSceneFacade: dispose');
     if (this.animationId !== null) {
       cancelAnimationFrame(this.animationId);
     }

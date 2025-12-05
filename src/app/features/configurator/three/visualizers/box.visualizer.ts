@@ -16,8 +16,8 @@ export class BoxVisualizer {
     this.pool = new BoxMeshPool(scene, factory, gridService);
   }
 
-  update(boxes: Box[], selectedId: string | null, errors: BoxValidationError[]): void {
-    this.pool.updateBoxes(boxes, selectedId, errors);
+  update(boxes: Box[], selectedId: string | null, errors: BoxValidationError[], showLabels: boolean = true): void {
+    this.pool.updateBoxes(boxes, selectedId, errors, showLabels);
   }
 
   dispose(): void {

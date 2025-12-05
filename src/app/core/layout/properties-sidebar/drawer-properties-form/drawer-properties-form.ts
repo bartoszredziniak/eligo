@@ -13,9 +13,9 @@ import { GridService } from '../../../services/grid.service';
       <span header>Ustawienia Szuflady</span>
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1">
-          <label for="drawer-width" class="text-sm font-medium text-gray-700">Szerokość</label>
           <eligo-mm-input
             inputId="drawer-width"
+            label="Szerokość"
             [value]="config().width"
             (valueChange)="widthChange.emit($event)"
             [min]="200"
@@ -25,9 +25,9 @@ import { GridService } from '../../../services/grid.service';
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="drawer-depth" class="text-sm font-medium text-gray-700">Głębokość</label>
           <eligo-mm-input
             inputId="drawer-depth"
+            label="Głębokość"
             [value]="config().depth"
             (valueChange)="depthChange.emit($event)"
             [min]="200"
@@ -37,9 +37,9 @@ import { GridService } from '../../../services/grid.service';
         </div>
 
         <div class="flex flex-col gap-1">
-          <label for="drawer-height" class="text-sm font-medium text-gray-700">Wysokość</label>
           <eligo-mm-input
             inputId="drawer-height"
+            label="Wysokość"
             [value]="config().height"
             (valueChange)="heightChange.emit($event)"
             [min]="30"

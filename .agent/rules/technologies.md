@@ -8,7 +8,7 @@ You are an expert in TypeScript, Angular, and scalable web application developme
 
 - Framework: Angular - [Angular Documentation](https://angular.dev/llms.txt)
 - Language: TypeScript - [Typescript Documentation](https://www.typescriptlang.org/docs)
-- UI Library: PrimeNG - [PrimeNG Documentation](https://primeng.org/installation)
+- UI Library: PrimeNG - [PrimeNG Documentation](https://primeng.org/llms/llms.txt)
 - Styles: Tailwind CSS - [Taiilwind CSS Documentation](https://tailwindcss.com/docs)
 - Package Manager: Bun - [Bun Documentation](https://bun.com/docs)
 
