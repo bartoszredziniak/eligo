@@ -1,5 +1,4 @@
 import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
-import { UiSidebar } from '../../../shared/ui/ui-sidebar/ui-sidebar';
 import { DrawerService } from '../../services/drawer.service';
 import { ConfiguratorStateService } from '../../services/configurator-state.service';
 import { DrawerPropertiesForm } from './drawer-properties-form/drawer-properties-form';
@@ -8,9 +7,9 @@ import { BoxColor } from '../../models/drawer.models';
 
 @Component({
   selector: 'eligo-properties-sidebar',
-  imports: [UiSidebar, DrawerPropertiesForm, BoxPropertiesForm],
+  imports: [DrawerPropertiesForm, BoxPropertiesForm],
   template: `
-    <eligo-ui-sidebar>
+    <div class="p-3">
       @switch (viewMode()) {
         @case ('DRAWER') {
           <eligo-drawer-properties-form
@@ -39,7 +38,7 @@ import { BoxColor } from '../../models/drawer.models';
           }
         }
       }
-    </eligo-ui-sidebar>
+    </div>
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,

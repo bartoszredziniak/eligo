@@ -6,7 +6,7 @@ import { ListboxModule } from 'primeng/listbox';
 import { Select } from 'primeng/select';
 import { InputText } from 'primeng/inputtext';
 import { FloatLabelModule } from 'primeng/floatlabel';
-import { SidebarSection } from '../../../../shared/ui/sidebar-section/sidebar-section';
+import { DividerModule } from 'primeng/divider';
 import { GridUnitInput } from '../../../../shared/form-controls/grid-unit-input/grid-unit-input';
 import { MmInput } from '../../../../shared/form-controls/mm-input/mm-input';
 import { Box, BOX_COLORS, BoxColor, BOX_PRESETS, BoxPreset } from '../../../models/drawer.models';
@@ -15,30 +15,24 @@ import { GridService } from '../../../services/grid.service';
 
 @Component({
   selector: 'eligo-box-properties-form',
-  imports: [CommonModule, FormsModule, ButtonModule, ListboxModule, Select, InputText, SidebarSection, GridUnitInput, MmInput, FloatLabelModule],
+  imports: [
+    CommonModule, 
+    FormsModule, 
+    ButtonModule, 
+    ListboxModule, 
+    Select, 
+    InputText, 
+    FloatLabelModule,
+    DividerModule,
+    GridUnitInput, 
+    MmInput
+  ],
   template: `
-    <eligo-sidebar-section>
-      <span header>Edycja Pudełka</span>
-      <div class="flex flex-col gap-6">
-        <!-- Presets Section -->
-        <div class="flex flex-col gap-2">
-          <p-floatLabel variant="on">
-            <p-select
-              inputId="box-preset"
-              [options]="presets"
-              optionLabel="label"
-              (onChange)="applyPreset($event.value)"
-              styleClass="w-full"
-              [showClear]="true"
-              (onClear)="clearPreset()"
-              size="small"
-            />
-            <label for="box-preset">Predefiniowane ustawienia</label>
-          </p-floatLabel>
-        </div>
-
-        <!-- Name Section -->
-        <div class="flex flex-col gap-2">
+    <div class="flex flex-col gap-4">
+      <!-- Basic Settings Section -->
+      <section>
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Podstawowe</h4>
+        <div class="flex flex-col gap-3">
           <p-floatLabel variant="on">
             <input
               pInputText
@@ -50,111 +44,126 @@ import { GridService } from '../../../services/grid.service';
             />
             <label for="box-name">Nazwa</label>
           </p-floatLabel>
-        </div>
-
-        <!-- Position Section -->
-        <div class="flex flex-col gap-2">
-          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Pozycja</h4>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="flex flex-col gap-1">
-              <eligo-grid-unit-input
-                inputId="box-x"
-                label="X"
-                [value]="box().x"
-                (valueChange)="xChange.emit($event)"
-                [min]="0"
-                [max]="maxX()"
-                [narrow]="true"
-                [showMmEquivalent]="false"
-              />
-            </div>
-            <div class="flex flex-col gap-1">
-              <eligo-grid-unit-input
-                inputId="box-y"
-                label="Y"
-                [value]="box().y"
-                (valueChange)="yChange.emit($event)"
-                [min]="0"
-                [max]="maxY()"
-                [narrow]="true"
-                [showMmEquivalent]="false"
-              />
-            </div>
-          </div>
-          <div class="text-xs text-gray-500">
-            Pozycja: {{ xInMm() }}mm × {{ yInMm() }}mm
-          </div>
-        </div>
-
-        <!-- Dimensions Section -->
-        <div class="flex flex-col gap-3">
-          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Wymiary</h4>
           
-          <div class="flex flex-col gap-1">
-            <eligo-grid-unit-input
-              inputId="box-width"
-              label="Szerokość"
-              [value]="box().width"
-              (valueChange)="widthChange.emit($event)"
-              [min]="1"
-              [max]="maxWidth()"
+          <p-floatLabel variant="on">
+            <p-select
+              inputId="box-preset"
+              [options]="presets"
+              optionLabel="label"
+              (onChange)="applyPreset($event.value)"
+              styleClass="w-full"
+              [showClear]="true"
+              (onClear)="clearPreset()"
+              size="small"
             />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <eligo-grid-unit-input
-              inputId="box-depth"
-              label="Głębokość"
-              [value]="box().depth"
-              (valueChange)="depthChange.emit($event)"
-              [min]="1"
-              [max]="maxDepth()"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1">
-            <eligo-mm-input
-              inputId="box-height"
-              label="Wysokość"
-              [value]="box().height"
-              (valueChange)="heightChange.emit($event)"
-              [min]="5"
-              [max]="maxHeight()"
-            />
-          </div>
+            <label for="box-preset">Szablon</label>
+          </p-floatLabel>
         </div>
+      </section>
 
-        <!-- Color Section -->
-        <div class="flex flex-col gap-3">
-          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Kolor</h4>
-          <p-listbox
-            [options]="availableColors"
-            [ngModel]="box().color"
-            (ngModelChange)="colorChange.emit($event)"
-            optionLabel="label"
-            optionValue="value"
-            [listStyle]="{'max-height': '250px'}"
-            styleClass="w-full"
-          >
-            <ng-template let-color pTemplate="item">
-              <div class="flex items-center gap-3 cursor-pointer select-none">
-                <div class="w-6 h-6 rounded-md border border-surface-300 shadow-sm"
-                     [style.background-color]="color.hex">
-                </div>
-                <span>{{ color.label }}</span>
+      <p-divider />
+
+      <!-- Dimensions Section -->
+      <section>
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Wymiary</h4>
+        <div class="flex flex-col gap-2">
+          <eligo-grid-unit-input
+            inputId="box-width"
+            label="Szerokość"
+            [value]="box().width"
+            (valueChange)="widthChange.emit($event)"
+            [min]="1"
+            [max]="maxWidth()"
+          />
+          <eligo-grid-unit-input
+            inputId="box-depth"
+            label="Głębokość"
+            [value]="box().depth"
+            (valueChange)="depthChange.emit($event)"
+            [min]="1"
+            [max]="maxDepth()"
+          />
+          <eligo-mm-input
+            inputId="box-height"
+            label="Wysokość"
+            [value]="box().height"
+            (valueChange)="heightChange.emit($event)"
+            [min]="5"
+            [max]="maxHeight()"
+          />
+        </div>
+      </section>
+
+      <p-divider />
+
+      <!-- Position Section -->
+      <section>
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pozycja</h4>
+        <div class="grid grid-cols-2 gap-2">
+          <eligo-grid-unit-input
+            inputId="box-x"
+            label="X"
+            [value]="box().x"
+            (valueChange)="xChange.emit($event)"
+            [min]="0"
+            [max]="maxX()"
+            [narrow]="true"
+            [showMmEquivalent]="false"
+          />
+          <eligo-grid-unit-input
+            inputId="box-y"
+            label="Y"
+            [value]="box().y"
+            (valueChange)="yChange.emit($event)"
+            [min]="0"
+            [max]="maxY()"
+            [narrow]="true"
+            [showMmEquivalent]="false"
+          />
+        </div>
+        <div class="text-xs text-gray-400 mt-1">
+          Pozycja: {{ xInMm() }}mm × {{ yInMm() }}mm
+        </div>
+      </section>
+
+      <p-divider />
+
+      <!-- Appearance Section -->
+      <section>
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Wygląd</h4>
+        <p-listbox
+          [options]="availableColors"
+          [ngModel]="box().color"
+          (ngModelChange)="colorChange.emit($event)"
+          optionLabel="label"
+          optionValue="value"
+          [listStyle]="{'max-height': '150px'}"
+          styleClass="w-full"
+        >
+          <ng-template let-color pTemplate="item">
+            <div class="flex items-center gap-2 cursor-pointer select-none">
+              <div class="w-5 h-5 rounded border border-surface-300 shadow-sm"
+                   [style.background-color]="color.hex">
               </div>
-            </ng-template>
-          </p-listbox>
-        </div>
+              <span class="text-sm">{{ color.label }}</span>
+            </div>
+          </ng-template>
+        </p-listbox>
+      </section>
 
-        <!-- Actions Section -->
-        <div class="flex flex-col gap-2 mt-2">
+      <p-divider />
+
+      <!-- Actions Section -->
+      <section>
+        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Akcje</h4>
+        <div class="flex flex-col gap-2">
           <div class="grid grid-cols-2 gap-2">
             <p-button
               label="Duplikuj"
               icon="pi pi-copy"
               severity="secondary"
               outlined="true"
+              size="small"
               (onClick)="duplicate.emit()"
               styleClass="w-full"
             />
@@ -163,20 +172,23 @@ import { GridService } from '../../../services/grid.service';
               icon="pi pi-refresh"
               severity="secondary"
               outlined="true"
+              size="small"
               (onClick)="rotate.emit()"
               styleClass="w-full"
             />
           </div>
           
           <p-button
-            label="Usuń Pudełko"
+            label="Usuń"
+            icon="pi pi-trash"
             severity="danger"
+            size="small"
             (onClick)="deleteBox.emit()"
             styleClass="w-full"
           />
         </div>
-      </div>
-    </eligo-sidebar-section>
+      </section>
+    </div>
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -256,4 +268,3 @@ export class BoxPropertiesForm {
     // User didn't specify what happens on clear.
   }
 }
-

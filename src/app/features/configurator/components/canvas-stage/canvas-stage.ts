@@ -55,8 +55,8 @@ import { ContextMenu } from 'primeng/contextmenu';
         <!-- Canvas will be injected here by Three.js -->
       </div>
 
-      <!-- Toolbar at the bottom -->
-      <div class="absolute bottom-0 left-0 right-0 z-10 m-4 pointer-events-none">
+      <!-- Toolbar at the bottom (Desktop only - SpeedDial on mobile) -->
+      <div class="absolute bottom-0 left-0 right-0 z-10 m-4 pointer-events-none hidden md:block">
         <p-toolbar styleClass="border-none rounded-xl bg-white/90 backdrop-blur-sm shadow-lg px-4 py-2 pointer-events-auto">
           <div class="p-toolbar-group-start"></div>
           
