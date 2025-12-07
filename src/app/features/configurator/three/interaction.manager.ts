@@ -278,97 +278,94 @@ export class InteractionManager {
     // Calculate delta from initial position
     const delta = new THREE.Vector3().subVectors(target, this.initialMousePosition);
 
-    let newWidth = this.initialBoxDimensions.width;
-    let newDepth = this.initialBoxDimensions.depth;
-    let newX = this.initialBoxPosition.x;
-    let newZ = this.initialBoxPosition.z;
+    const layout = this.gridService.gridLayout();
+    const cellSize = this.gridService.cellSize();
 
-    // We want 1:1 movement.
-    // If we drag RIGHT handle by +10mm, width increases by +10mm, and center moves by +5mm.
-    // If we drag LEFT handle by -10mm, width increases by +10mm, and center moves by -5mm.
+    // 1. Calculate new potential dimensions in mm based on mouse movement
+    // We stick to the existing logic for calculating raw MM values
+    let newWidthMm = this.initialBoxDimensions.width;
+    let newDepthMm = this.initialBoxDimensions.depth;
 
-    switch (this.resizeHandle) {
-      case HandleSide.LEFT:
-        // Dragging left (negative X) increases width
-        // Delta X is negative when moving left
-        newWidth = this.initialBoxDimensions.width - delta.x;
-        newX = this.initialBoxPosition.x + delta.x / 2;
-        break;
-      case HandleSide.RIGHT:
-        // Dragging right (positive X) increases width
-        newWidth = this.initialBoxDimensions.width + delta.x;
-        newX = this.initialBoxPosition.x + delta.x / 2;
-        break;
-      case HandleSide.TOP:
-        // Dragging top (negative Z) increases depth
-        newDepth = this.initialBoxDimensions.depth - delta.z;
-        newZ = this.initialBoxPosition.z + delta.z / 2;
-        break;
-      case HandleSide.BOTTOM:
-        // Dragging bottom (positive Z) increases depth
-        newDepth = this.initialBoxDimensions.depth + delta.z;
-        newZ = this.initialBoxPosition.z + delta.z / 2;
-        break;
+    if (this.resizeHandle === HandleSide.LEFT || this.resizeHandle === HandleSide.RIGHT) {
+      newWidthMm = this.resizeHandle === HandleSide.LEFT
+        ? this.initialBoxDimensions.width - delta.x
+        : this.initialBoxDimensions.width + delta.x;
+    } else {
+      newDepthMm = this.resizeHandle === HandleSide.TOP
+        ? this.initialBoxDimensions.depth - delta.z
+        : this.initialBoxDimensions.depth + delta.z;
     }
 
-    // Convert to grid units and snap
-    const widthGridUnits = Math.max(1, Math.round(this.gridService.mmToGridUnits(newWidth)));
-    const depthGridUnits = Math.max(1, Math.round(this.gridService.mmToGridUnits(newDepth)));
+    // 2. Convert to potential Grid Units (using round for intuitive snapping)
+    let widthGridUnits = Math.max(1, Math.round(newWidthMm / cellSize));
+    let depthGridUnits = Math.max(1, Math.round(newDepthMm / cellSize));
 
-    // Recalculate position based on snapped dimensions to keep the anchor point fixed
-    // Anchor point logic:
-    // If resizing RIGHT, Left edge is anchor.
-    // Anchor X = Initial Center X - Initial Width / 2
-    // New Center X = Anchor X + New Width / 2
+    // 3. Derive Initial Grid State (Anchors)
+    const initLeftMm = this.initialBoxPosition.x - this.initialBoxDimensions.width / 2;
+    const initTopMm = this.initialBoxPosition.z - this.initialBoxDimensions.depth / 2; // Z is depth
     
-    const initialWidth = this.initialBoxDimensions.width;
-    const initialDepth = this.initialBoxDimensions.depth;
-    const initialX = this.initialBoxPosition.x;
-    const initialZ = this.initialBoxPosition.z;
+    // We use round here to snap the initial position to the nearest grid line to avoid drifting
+    const initXGrid = Math.round(initLeftMm / cellSize);
+    const initYGrid = Math.round(initTopMm / cellSize);
 
-    const newWidthMm = this.gridService.gridUnitsToMm(widthGridUnits);
-    const newDepthMm = this.gridService.gridUnitsToMm(depthGridUnits);
+    // 4. Apply Constraints based on fixed anchor points
+    let finalXGrid = initXGrid;
+    let finalYGrid = initYGrid;
 
-    let finalX = newX;
-    let finalZ = newZ;
-
+    // Horizontal Constraints (Width/X)
     if (this.resizeHandle === HandleSide.LEFT) {
-        const anchorRight = initialX + initialWidth / 2;
-        finalX = anchorRight - newWidthMm / 2;
+      // Anchor is Right Edge (fixed)
+      const anchorRightGrid = initXGrid + Math.round(this.initialBoxDimensions.width / cellSize);
+      
+      // Constraint: New Left must be >= 0
+      // Right - Width >= 0 => Width <= Right
+      const maxWidth = anchorRightGrid;
+      widthGridUnits = Math.min(widthGridUnits, maxWidth);
+      
+      // Allow shrinking, but min is 1 (already handled)
+      
+      // Recalculate X
+      finalXGrid = anchorRightGrid - widthGridUnits;
     } else if (this.resizeHandle === HandleSide.RIGHT) {
-        const anchorLeft = initialX - initialWidth / 2;
-        finalX = anchorLeft + newWidthMm / 2;
-    } else if (this.resizeHandle === HandleSide.TOP) {
-        const anchorBottom = initialZ + initialDepth / 2;
-        finalZ = anchorBottom - newDepthMm / 2;
-    } else if (this.resizeHandle === HandleSide.BOTTOM) {
-        const anchorTop = initialZ - initialDepth / 2;
-        finalZ = anchorTop + newDepthMm / 2;
+      // Anchor is Left Edge (fixed) => initXGrid
+      // Constraint: Right <= MaxWidth
+      // Left + Width <= MaxGridWidth => Width <= MaxGridWidth - Left
+      const maxWidth = layout.gridUnitsWidth - initXGrid;
+      widthGridUnits = Math.min(widthGridUnits, maxWidth);
+      
+      // X stays same
+      finalXGrid = initXGrid;
     }
 
-    // Convert final position to grid units
-    // Position is top-left corner in grid system (usually) or center?
-    // DrawerService expects x,y as top-left corner in grid units.
-    // But here we are dealing with 3D world coordinates where (0,0,0) is center of drawer (usually) or top-left?
-    // Let's check GridService.mmToGridUnits and how position is handled.
-    // Usually 3D position (center) -> Top-Left Grid Coordinate requires conversion.
-    
-    // Let's look at calculateSnappedPosition used for dragging:
-    // const targetXGridUnits = this.gridService.mmToGridUnits(target.x - width / 2);
-    // It seems target.x is center, so target.x - width/2 is left edge.
-    
-    const leftEdgeMm = finalX - newWidthMm / 2;
-    const topEdgeMm = finalZ - newDepthMm / 2; // Z is depth
-
-    const xGridUnits = Math.round(this.gridService.mmToGridUnits(leftEdgeMm));
-    const yGridUnits = Math.round(this.gridService.mmToGridUnits(topEdgeMm));
+    // Vertical Constraints (Depth/Y)
+    if (this.resizeHandle === HandleSide.TOP) {
+      // Anchor is Bottom Edge (fixed) (Positive Z)
+      const anchorBottomGrid = initYGrid + Math.round(this.initialBoxDimensions.depth / cellSize);
+      
+      // Constraint: Top >= 0
+      // Bottom - Depth >= 0 => Depth <= Bottom
+      const maxDepth = anchorBottomGrid;
+      depthGridUnits = Math.min(depthGridUnits, maxDepth);
+      
+      // Recalculate Y
+      finalYGrid = anchorBottomGrid - depthGridUnits;
+    } else if (this.resizeHandle === HandleSide.BOTTOM) {
+      // Anchor is Top Edge (fixed) => initYGrid
+      // Constraint: Bottom <= MaxDepth
+      // Top + Depth <= MaxGridDepth => Depth <= MaxGridDepth - Top
+      const maxDepth = layout.gridUnitsDepth - initYGrid;
+      depthGridUnits = Math.min(depthGridUnits, maxDepth);
+      
+      // Y stays same
+      finalYGrid = initYGrid;
+    }
 
     this._boxResize.next({
       id: this.draggedBoxId,
       width: widthGridUnits,
       depth: depthGridUnits,
-      x: xGridUnits,
-      y: yGridUnits
+      x: finalXGrid,
+      y: finalYGrid
     });
   }
 
