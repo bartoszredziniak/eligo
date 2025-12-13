@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { ListboxModule } from 'primeng/listbox';
+import { InputText } from 'primeng/inputtext';
 import { UiSidebar } from '../../../shared/ui/ui-sidebar/ui-sidebar';
 import { SidebarSection } from '../../../shared/ui/sidebar-section/sidebar-section';
 import { ConfiguratorStateService } from '../../services/configurator-state.service';
@@ -14,7 +15,7 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
 
 @Component({
   selector: 'eligo-tools-sidebar',
-  imports: [CommonModule, FormsModule, ButtonModule, ListboxModule, UiSidebar, SidebarSection, ValidationErrorsPanel, EmptyState],
+  imports: [CommonModule, FormsModule, ButtonModule, ListboxModule, InputText, UiSidebar, SidebarSection, ValidationErrorsPanel, EmptyState],
   template: `
     <eligo-ui-sidebar>
       <eligo-sidebar-section>
@@ -24,6 +25,7 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
             label="Dodaj Pudełko"
             icon="pi pi-plus"
             styleClass="w-full"
+            size="small"
             (onClick)="addBox()"
           />
         </div>
@@ -38,7 +40,7 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
             (ngModelChange)="stateService.selectBox($event)"
             optionLabel="name"
             optionValue="id"
-            styleClass="w-full border-none p-0"
+            styleClass="w-full"
             [listStyle]="{'max-height': 'calc(100vh - 300px)'}"
           >
             <ng-template let-item pTemplate="item">
@@ -50,9 +52,11 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
                   } @else {
                     @if (editingBoxId() === item.id) {
                       <input
+                        pInputText
+                        pSize="small"
                         type="text"
                         [value]="item.name"
-                        class="w-full text-sm p-1 border rounded"
+                        class="w-full text-sm p-1"
                         (click)="$event.stopPropagation()"
                         (blur)="saveName($event, item.id)"
                         (keydown.enter)="saveName($event, item.id)"
@@ -104,23 +108,7 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
       <eligo-validation-errors-panel [errors]="drawerService.validationErrors()" />
     </eligo-ui-sidebar>
   `,
-  styles: [`
-    :host ::ng-deep .p-listbox {
-      border: none;
-      padding: 0;
-    }
-    :host ::ng-deep .p-listbox .p-listbox-list .p-listbox-item {
-      padding: 0.75rem;
-      border-radius: 6px;
-      margin-bottom: 4px;
-      border: 1px solid transparent;
-    }
-    :host ::ng-deep .p-listbox .p-listbox-list .p-listbox-item.p-highlight {
-      background: var(--primary-50);
-      color: var(--primary-700);
-      border-color: var(--primary-500);
-    }
-  `],
+  styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 

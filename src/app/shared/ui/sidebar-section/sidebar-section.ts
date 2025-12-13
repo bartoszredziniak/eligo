@@ -1,23 +1,19 @@
-import { Component, ChangeDetectionStrategy, input } from '@angular/core';
-import { AccordionModule } from 'primeng/accordion';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { DividerModule } from 'primeng/divider';
 
 @Component({
   selector: 'eligo-sidebar-section',
-  imports: [AccordionModule],
+  imports: [DividerModule],
   template: `
-    <p-accordion [value]="defaultExpanded() ? '0' : ''">
-      <p-accordion-panel value="0">
-        <p-accordion-header>
-            <ng-content select="[header]" />
-        </p-accordion-header>
-        <p-accordion-content>
-            <ng-content />
-        </p-accordion-content>
-      </p-accordion-panel>
-    </p-accordion>
+    <div class="w-120p -mx-4">
+      <p-divider align="left">
+      <ng-content select="[header]" />
+    </p-divider>
+    </div>
+    <div class="flex flex-col gap-2">
+        <ng-content />
+    </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class SidebarSection {
-  defaultExpanded = input(true);
-}
+export class SidebarSection {}

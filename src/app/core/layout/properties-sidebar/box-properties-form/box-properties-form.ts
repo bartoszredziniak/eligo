@@ -11,28 +11,27 @@ import { GridUnitInput } from '../../../../shared/form-controls/grid-unit-input/
 import { MmInput } from '../../../../shared/form-controls/mm-input/mm-input';
 import { Box, BOX_COLORS, BoxColor, BOX_PRESETS, BoxPreset } from '../../../models/drawer.models';
 import { GridService } from '../../../services/grid.service';
+import {SidebarSection} from '../../../../shared/ui/sidebar-section/sidebar-section';
 
 
 @Component({
   selector: 'eligo-box-properties-form',
   imports: [
-    CommonModule, 
-    FormsModule, 
-    ButtonModule, 
-    ListboxModule, 
-    Select, 
-    InputText, 
+    CommonModule,
+    FormsModule,
+    ButtonModule,
+    ListboxModule,
+    Select,
+    InputText,
     FloatLabelModule,
     DividerModule,
-    GridUnitInput, 
-    MmInput
+    GridUnitInput,
+    MmInput,
+    SidebarSection
   ],
   template: `
-    <div class="flex flex-col gap-4">
-      <!-- Basic Settings Section -->
-      <section>
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Podstawowe</h4>
-        <div class="flex flex-col gap-3">
+      <eligo-sidebar-section>
+          <span header>Podstawowe</span>
           <p-floatLabel variant="on">
             <input
               pInputText
@@ -44,7 +43,7 @@ import { GridService } from '../../../services/grid.service';
             />
             <label for="box-name">Nazwa</label>
           </p-floatLabel>
-          
+
           <p-floatLabel variant="on">
             <p-select
               inputId="box-preset"
@@ -58,15 +57,11 @@ import { GridService } from '../../../services/grid.service';
             />
             <label for="box-preset">Szablon</label>
           </p-floatLabel>
-        </div>
-      </section>
-
-      <p-divider />
+      </eligo-sidebar-section>
 
       <!-- Dimensions Section -->
-      <section>
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Wymiary</h4>
-        <div class="flex flex-col gap-2">
+      <eligo-sidebar-section>
+        <span header>Wymiary</span>
           <eligo-grid-unit-input
             inputId="box-width"
             label="Szerokość"
@@ -91,14 +86,10 @@ import { GridService } from '../../../services/grid.service';
             [min]="5"
             [max]="maxHeight()"
           />
-        </div>
-      </section>
+      </eligo-sidebar-section>
 
-      <p-divider />
-
-      <!-- Position Section -->
-      <section>
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Pozycja</h4>
+      <eligo-sidebar-section>
+        <span header>Pozycja</span>
         <div class="grid grid-cols-2 gap-2">
           <eligo-grid-unit-input
             inputId="box-x"
@@ -122,15 +113,14 @@ import { GridService } from '../../../services/grid.service';
           />
         </div>
         <div class="text-xs text-gray-400 mt-1">
-          Pozycja: {{ xInMm() }}mm × {{ yInMm() }}mm
+          Pozycja: {{ xInMm() }}mm ×{{ yInMm() }}mm
         </div>
-      </section>
-
-      <p-divider />
+      </eligo-sidebar-section>
 
       <!-- Appearance Section -->
-      <section>
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Wygląd</h4>
+      <eligo-sidebar-section>
+        <span header>Wygląd</span>
+
         <p-listbox
           [options]="availableColors"
           [ngModel]="box().color"
@@ -149,13 +139,12 @@ import { GridService } from '../../../services/grid.service';
             </div>
           </ng-template>
         </p-listbox>
-      </section>
-
-      <p-divider />
+      </eligo-sidebar-section>
 
       <!-- Actions Section -->
-      <section>
-        <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Akcje</h4>
+      <eligo-sidebar-section>
+        <span header>Akcje</span>
+
         <div class="flex flex-col gap-2">
           <div class="grid grid-cols-2 gap-2">
             <p-button
@@ -177,7 +166,7 @@ import { GridService } from '../../../services/grid.service';
               styleClass="w-full"
             />
           </div>
-          
+
           <p-button
             label="Usuń"
             icon="pi pi-trash"
@@ -187,8 +176,7 @@ import { GridService } from '../../../services/grid.service';
             styleClass="w-full"
           />
         </div>
-      </section>
-    </div>
+      </eligo-sidebar-section>
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -207,8 +195,6 @@ export class BoxPropertiesForm {
   // Computed values for displaying mm equivalents
   readonly xInMm = computed(() => this.gridService.gridUnitsToMm(this.box().x));
   readonly yInMm = computed(() => this.gridService.gridUnitsToMm(this.box().y));
-  readonly widthInMm = computed(() => this.gridService.gridUnitsToMm(this.box().width));
-  readonly depthInMm = computed(() => this.gridService.gridUnitsToMm(this.box().depth));
 
   // Dynamic max values based on grid layout and current box dimensions
   readonly maxX = computed(() => {
@@ -258,7 +244,7 @@ export class BoxPropertiesForm {
     const isDefaultName = currentName === 'Pudełko';
     const isPresetName = this.presets.some(p => p.label === currentName);
 
-    if (isDefaultName || isPresetName) {
+    if (isDefaultName   || isPresetName) {
       this.nameChange.emit(preset.label);
     }
   }

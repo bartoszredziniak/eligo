@@ -10,7 +10,7 @@ import { EmptyState } from '../../../../shared/ui/empty-state/empty-state';
   selector: 'eligo-validation-errors-panel',
   imports: [CommonModule, SidebarSection, MessageModule, BadgeModule, EmptyState],
   template: `
-    <eligo-sidebar-section [defaultExpanded]="true">
+    <eligo-sidebar-section>
       <span header class="flex items-center gap-2">
         <span>Walidacja</span>
         @if (totalCount() > 0) {

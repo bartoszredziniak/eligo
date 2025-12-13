@@ -4,13 +4,15 @@ import { ConfiguratorStateService } from '../../services/configurator-state.serv
 import { DrawerPropertiesForm } from './drawer-properties-form/drawer-properties-form';
 import { BoxPropertiesForm } from './box-properties-form/box-properties-form';
 import { BoxColor } from '../../models/drawer.models';
+import {UiSidebar} from '../../../shared/ui/ui-sidebar/ui-sidebar';
 
 @Component({
   selector: 'eligo-properties-sidebar',
-  imports: [DrawerPropertiesForm, BoxPropertiesForm],
+  imports: [DrawerPropertiesForm, BoxPropertiesForm, UiSidebar],
   template: `
-    <div class="p-3">
-      @switch (viewMode()) {
+    <eligo-ui-sidebar>
+
+    @switch (viewMode()) {
         @case ('DRAWER') {
           <eligo-drawer-properties-form
             [config]="drawerConfig()"
@@ -38,7 +40,7 @@ import { BoxColor } from '../../models/drawer.models';
           }
         }
       }
-    </div>
+    </eligo-ui-sidebar>>
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,

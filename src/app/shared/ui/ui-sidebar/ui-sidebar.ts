@@ -5,18 +5,15 @@ import { CommonModule } from '@angular/common';
   selector: 'eligo-ui-sidebar',
   imports: [CommonModule],
   template: `
-    <div class="flex flex-col h-full w-full bg-white">
-      <!-- Optional Header Slot -->
+    <div class="flex flex-col h-full  w-full bg-white">
       <div class="flex-none">
         <ng-content select="[header]" />
       </div>
 
-      <!-- Main Content Slot (Scrollable) -->
-      <div class="flex-1 overflow-y-auto">
+      <div class="flex-1 overflow-y-auto py-4 px-4">
         <ng-content />
       </div>
 
-      <!-- Optional Footer Slot -->
       <div class="flex-none">
         <ng-content select="[footer]" />
       </div>

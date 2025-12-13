@@ -22,7 +22,7 @@ import { ButtonModule } from 'primeng/button';
       <p-button
         icon="pi pi-check"
         label="Zamów"
-        [rounded]="true"
+        [rounded]="true" 
         size="small"
         (onClick)="generateOrder.emit()"
       />
