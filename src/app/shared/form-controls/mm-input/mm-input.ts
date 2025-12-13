@@ -33,6 +33,7 @@ import { FloatLabelModule } from 'primeng/floatlabel';
         <span class="text-xs">mm</span>
       </p-inputGroupAddon>
     </p-inputGroup>
+    <ng-content />
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,

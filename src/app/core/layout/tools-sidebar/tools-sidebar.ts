@@ -40,23 +40,32 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
             (ngModelChange)="stateService.selectBox($event)"
             optionLabel="name"
             optionValue="id"
-            styleClass="w-full"
+            styleClass="w-full border-0"
             [listStyle]="{'max-height': 'calc(100vh - 300px)'}"
           >
             <ng-template let-item pTemplate="item">
-              <div class="flex items-center justify-between w-full gap-2">
-                <div class="flex items-center gap-2 flex-1 min-w-0">
+              <div class="flex items-center gap-2 w-full select-none">
+                <!-- Color Indicator (Left side for better visibility) -->
+                @if (item.type === 'box') {
+                  <div
+                    class="w-5 h-5 rounded-full border border-surface-200 shrink-0"
+                    [style.background-color]="getBoxColorHex(item.color)"
+                  ></div>
+                } @else {
+                  <i class="pi pi-inbox text-surface-400 text-sm"></i>
+                }
+
+                <!-- Name / Input -->
+                <div class="flex-1 min-w-0 flex items-center gap-2">
                   @if (item.type === 'drawer') {
-                    <span class="text-sm font-medium">Szuflada</span>
-                    <i class="pi pi-box ml-auto text-surface-400"></i>
+                    <span class="text-sm">Szuflada</span>
                   } @else {
                     @if (editingBoxId() === item.id) {
                       <input
                         pInputText
-                        pSize="small"
                         type="text"
                         [value]="item.name"
-                        class="w-full text-sm p-1"
+                        class="w-full py-1 px-2 h-7! text-sm"
                         (click)="$event.stopPropagation()"
                         (blur)="saveName($event, item.id)"
                         (keydown.enter)="saveName($event, item.id)"
@@ -65,30 +74,27 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
                       />
                     } @else {
                       <span
-                        class="text-sm font-medium truncate"
+                        class="text-sm truncate cursor-pointer"
                         (dblclick)="startEditing($event, item.id)"
                         title="Kliknij dwukrotnie aby zmienić nazwę"
                       >
                         {{ item.name }}
                       </span>
                     }
-                    @if (getBoxError(item.id); as error) {
-                      @if (error.type === 'collision') {
-                        <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
-                      } @else if (error.type === 'boundary') {
-                        <i class="pi pi-arrows-alt text-orange-500 text-xs" title="Wystaje poza szufladę - kliknij aby przesunąć"></i>
-                      } @else if (error.type === 'oversized') {
-                        <i class="pi pi-ban text-red-500 text-xs" title="Za duże - zmień rozmiar"></i>
-                      }
-                    }
                   }
                 </div>
-                
-                @if (item.type === 'box') {
-                  <div
-                    class="w-5 h-5 rounded border-2 border-surface-300 shadow-sm"
-                    [style.background-color]="getBoxColorHex(item.color)"
-                  ></div>
+
+                <!-- Error Icons (Right aligned) -->
+                @if (item.type === 'box' && getBoxError(item.id); as error) {
+                  <div class="ml-auto flex items-center">
+                    @if (error.type === 'collision') {
+                      <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
+                    } @else if (error.type === 'boundary') {
+                      <i class="pi pi-arrows-alt text-orange-500 text-xs" title="Wystaje poza szufladę"></i>
+                    } @else if (error.type === 'oversized') {
+                      <i class="pi pi-ban text-red-500 text-xs" title="Za duże"></i>
+                    }
+                  </div>
                 }
               </div>
             </ng-template>

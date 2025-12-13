@@ -26,8 +26,6 @@ import {UiSidebar} from '../../../shared/ui/ui-sidebar/ui-sidebar';
             <eligo-box-properties-form
               [box]="box"
               [drawerHeight]="drawerConfig().height"
-              (xChange)="updateBoxX(box.id, $event)"
-              (yChange)="updateBoxY(box.id, $event)"
               (widthChange)="updateBoxWidth(box.id, $event)"
               (depthChange)="updateBoxDepth(box.id, $event)"
               (heightChange)="updateBoxHeight(box.id, $event)"
@@ -67,14 +65,6 @@ export class PropertiesSidebar {
 
   updateDrawerHeight(value: number) {
     this.drawerService.updateDrawerConfig({ height: value });
-  }
-
-  updateBoxX(id: string, value: number) {
-    this.drawerService.updateBox(id, { x: value });
-  }
-
-  updateBoxY(id: string, value: number) {
-    this.drawerService.updateBox(id, { y: value });
   }
 
   updateBoxWidth(id: string, value: number) {

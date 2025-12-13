@@ -20,8 +20,9 @@ import {SidebarSection} from '../../../../shared/ui/sidebar-section/sidebar-sect
           (valueChange)="widthChange.emit($event)"
           [min]="200"
           [max]="1200"
-        />
-        <span class="text-xs text-gray-400">{{ gridUnitsWidth() }} komórek ({{ cellSize() }}mm)</span>
+        >
+          <span class="text-xs text-gray-400">{{ gridUnitsWidth() }} komórek ({{ cellSize() }}mm)</span>
+        </eligo-mm-input>
 
         <eligo-mm-input
           inputId="drawer-depth"
@@ -30,8 +31,9 @@ import {SidebarSection} from '../../../../shared/ui/sidebar-section/sidebar-sect
           (valueChange)="depthChange.emit($event)"
           [min]="200"
           [max]="1200"
-        />
-        <span class="text-xs text-gray-400">{{ gridUnitsDepth() }} komórek ({{ cellSize() }}mm)</span>
+        >
+          <span class="text-xs text-gray-400">{{ gridUnitsDepth() }} komórek ({{ cellSize() }}mm)</span>
+        </eligo-mm-input>
 
         <eligo-mm-input
           inputId="drawer-height"
