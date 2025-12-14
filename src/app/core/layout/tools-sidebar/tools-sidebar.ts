@@ -19,19 +19,6 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
   template: `
     <eligo-ui-sidebar>
       <eligo-sidebar-section>
-        <span header>Narzędzia</span>
-        <div class="flex flex-col gap-2">
-          <p-button
-            label="Dodaj Pudełko"
-            icon="pi pi-plus"
-            styleClass="w-full"
-            size="small"
-            (onClick)="addBox()"
-          />
-        </div>
-      </eligo-sidebar-section>
-
-      <eligo-sidebar-section>
         <span header>Lista Elementów</span>
         <div class="flex flex-col gap-2">
           <p-listbox
@@ -141,10 +128,10 @@ export class ToolsSidebar {
 
     const width = 6; // grid units
     const depth = 6; // grid units
-    
+
     // Try to find first free position
     const freePosition = this.drawerService.findFirstFreePosition(width, depth);
-    
+
     // Use free position or default to (0,0) if drawer is full
     const { x, y } = freePosition || { x: 0, y: 0 };
 

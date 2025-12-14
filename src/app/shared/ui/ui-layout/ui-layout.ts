@@ -23,12 +23,6 @@ export type MobileTab = 'canvas' | 'elements';
           <ng-content select="[sidebarLeft]" />
         </div>
 
-        <div
-          class="flex-none border-r border-gray-200 bg-white z-30 overflow-y-auto hidden md:block md:w-72"
-        >
-          <ng-content select="[sidebarRight]" />
-        </div>
-
         <main
           class="flex-1 relative overflow-hidden bg-gray-100"
         >

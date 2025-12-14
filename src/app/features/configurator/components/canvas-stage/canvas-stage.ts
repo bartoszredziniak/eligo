@@ -9,6 +9,7 @@ import {
   effect,
   PLATFORM_ID,
   signal,
+  computed,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
@@ -23,23 +24,26 @@ import { GridService } from '../../../../core/services/grid.service';
 import { ThreeFactoryService } from '../../three/services/three-factory.service';
 import { DrawerConfig } from '../../../../core/models/drawer.models';
 
+import { ScrollableContainerComponent } from '../../../../shared/components/scrollable-container/scrollable-container.component';
+import { BoxPropertiesForm } from '../forms/box-properties-form/box-properties-form';
+import { DrawerPropertiesForm } from '../forms/drawer-properties-form/drawer-properties-form';
+
 import { ToolbarModule } from 'primeng/toolbar';
 import { ButtonModule } from 'primeng/button';
 import { PopoverModule } from 'primeng/popover';
-import { ContextMenuModule } from 'primeng/contextmenu';
-import { TooltipModule } from 'primeng/tooltip';
-import { MenuItem } from 'primeng/api';
-import { ContextMenu } from 'primeng/contextmenu';
+import { DialogModule } from 'primeng/dialog';
 
 @Component({
   selector: 'eligo-canvas-stage',
   imports: [
-    CommonModule, 
-    ToolbarModule, 
-    ButtonModule, 
-    PopoverModule, 
-    ContextMenuModule,
-    TooltipModule
+    CommonModule,
+    ToolbarModule,
+    ButtonModule,
+    PopoverModule,
+    DialogModule,
+    ScrollableContainerComponent,
+    BoxPropertiesForm,
+    DrawerPropertiesForm
   ],
   template: `
     <div class="relative w-full h-full">
@@ -50,48 +54,58 @@ import { ContextMenu } from 'primeng/contextmenu';
         (mousemove)="onMouseMove($event)"
         (mouseup)="onMouseUp()"
         (mouseleave)="onMouseUp()"
-        (contextmenu)="$event.preventDefault()"
       >
         <!-- Canvas will be injected here by Three.js -->
       </div>
 
-      <!-- Toolbar at the bottom (Desktop only - SpeedDial on mobile) -->
-      <div class="absolute bottom-0 left-0 right-0 z-10 m-4 pointer-events-none hidden md:block">
-        <p-toolbar styleClass="border-none rounded-xl bg-white/90 backdrop-blur-sm shadow-lg px-4 py-2 pointer-events-auto">
-          <div class="p-toolbar-group-start"></div>
-          
-          <div class="p-toolbar-group-center">
-            <div class="flex gap-2">
-              <p-button 
-                [icon]="showLabels() ? 'pi pi-eye' : 'pi pi-eye-slash'" 
-                [label]="showLabels() ? 'Ukryj etykiety' : 'Pokaż etykiety'"
-                severity="secondary" 
-                [outlined]="true"
-                (onClick)="toggleLabels()"
-                pTooltip="Pokaż/ukryj etykiety pudełek"
-              />
-              <p-button 
-                label="Resetuj widok" 
-                icon="pi pi-refresh" 
-                severity="secondary" 
-                [outlined]="true"
-                (onClick)="resetView()"
-                pTooltip="Ustaw widok z góry"
-              />
-            </div>
-          </div>
+      <!-- Toolbar at the TOP -->
+      <div class="absolute top-0 left-0 right-0 z-10 pointer-events-none">
 
-          <div class="p-toolbar-group-end">
-            <p-button 
-              label="Sterowanie"
-              icon="pi pi-question-circle" 
-              [outlined]="true"
-              severity="secondary"
-              (onClick)="helpOp.toggle($event)"
-              pTooltip="Instrukcja sterowania"
-            />
-          </div>
-        </p-toolbar>
+        <!-- Gradient background container -->
+        <div class="bg-linear-to-b from-white/90 to-transparent pb-6 pt-2 pointer-events-auto">
+          <eligo-scrollable-container>
+              <div class="flex gap-1 mx-auto">
+                <p-button
+                  label="Dodaj pudełko"
+                  icon="pi pi-plus"
+                  [rounded]="true"
+                  size="small"
+                  severity="primary"
+                  styleClass="whitespace-nowrap"
+                  (onClick)="addBox()"
+                />
+
+                <p-button
+                  [icon]="showLabels() ? 'pi pi-eye' : 'pi pi-eye-slash'"
+                  [label]="showLabels() ? 'Ukryj etykiety' : 'Pokaż etykiety'"
+                  severity="secondary"
+                  [rounded]="true"
+                  size="small"
+                  styleClass="whitespace-nowrap"
+                  (onClick)="toggleLabels()"
+                />
+                <p-button
+                  label="Resetuj widok"
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  [rounded]="true"
+                  size="small"
+                  styleClass="whitespace-nowrap"
+                  (onClick)="resetView()"
+                />
+
+                <p-button
+                  label="Sterowanie"
+                  icon="pi pi-question-circle"
+                  [rounded]="true"
+                  size="small"
+                  severity="secondary"
+                  styleClass="whitespace-nowrap"
+                  (onClick)="helpOp.toggle($event)"
+                />
+              </div>
+          </eligo-scrollable-container>
+        </div>
       </div>
 
       <!-- Help Popover -->
@@ -130,8 +144,142 @@ import { ContextMenu } from 'primeng/contextmenu';
         </div>
       </p-popover>
 
-      <!-- Context Menu -->
-      <p-contextMenu #contextMenu [model]="menuItems()" appendTo="body" />
+      <!-- Bottom Floating Action Bar -->
+      <div class="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto" style="max-width: 95vw;">
+        <!-- Visual Pill Container -->
+        <div class="rounded-full bg-surface-0/90 backdrop-blur-sm shadow-xl border border-surface-200 overflow-hidden">
+          <eligo-scrollable-container>
+            <div class="flex gap-2 p-2">
+              @if (stateService.selectedBoxId()) {
+                <!-- Selected Box Actions -->
+                <p-button
+                  label="Kolor"
+                  icon="pi pi-palette"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="secondary"
+                  (onClick)="colorDialogVisible.set(true)"
+                />
+                <p-button
+                  label="Ustawienia"
+                  icon="pi pi-cog"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="secondary"
+                  (onClick)="settingsDialogVisible.set(true)"
+                />
+
+                <div class="w-px bg-surface-200 my-1 mx-1 shrink-0"></div>
+
+                <p-button
+                  label="Duplikuj"
+                  icon="pi pi-copy"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="secondary"
+                  (onClick)="duplicateSelected()"
+                />
+                <p-button
+                  label="Obróć"
+                  icon="pi pi-refresh"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="secondary"
+                  (onClick)="rotateSelected()"
+                />
+
+                <div class="w-px bg-surface-200 my-1 mx-1 shrink-0"></div>
+
+                <p-button
+                  label="Usuń"
+                  icon="pi pi-trash"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="danger"
+                  styleClass="!text-red-500 hover:!bg-red-50"
+                  (onClick)="removeSelected()"
+                />
+              } @else {
+                <!-- No Selection Actions -->
+                <p-button
+                  label="Wymiary szuflady"
+                  icon="pi pi-sliders-h"
+                  [rounded]="true"
+                  [text]="true"
+                  size="small"
+                  severity="secondary"
+                  styleClass="whitespace-nowrap"
+                  (onClick)="drawerDialogVisible.set(true)"
+                />
+              }
+            </div>
+          </eligo-scrollable-container>
+        </div>
+      </div>
+
+      <!-- Color Dialog -->
+      <p-dialog
+        header="Wybierz kolor"
+        [(visible)]="colorDialogVisible"
+        [modal]="true"
+        [draggable]="false"
+        [resizable]="false"
+        [breakpoints]="dialogBreakpoints"
+        [style]="{ width: '50vw', maxWidth: '400px' }"
+        appendTo="body"
+      >
+        @if (selectedBox(); as box) {
+          <eligo-box-properties-form
+            [box]="box"
+            [drawerHeight]="drawerService.drawerConfig().height"
+            [embedded]="true"
+            [visibleSections]="['appearance']"
+          />
+        }
+      </p-dialog>
+
+      <!-- Settings Dialog -->
+      <p-dialog
+        header="Ustawienia pudełka"
+        [(visible)]="settingsDialogVisible"
+        [modal]="true"
+        [draggable]="false"
+        [resizable]="false"
+        [breakpoints]="dialogBreakpoints"
+        [style]="{ width: '50vw', maxWidth: '500px' }"
+        appendTo="body"
+      >
+        @if (selectedBox(); as box) {
+          <eligo-box-properties-form
+            [box]="box"
+            [drawerHeight]="drawerService.drawerConfig().height"
+            [embedded]="true"
+            [visibleSections]="['basic', 'dimensions']"
+          />
+        }
+      </p-dialog>
+
+      <!-- Drawer Dimensions Dialog -->
+      <p-dialog
+        header="Wymiary szuflady"
+        [(visible)]="drawerDialogVisible"
+        [modal]="true"
+        [draggable]="false"
+        [resizable]="false"
+        [breakpoints]="dialogBreakpoints"
+        [style]="{ width: '50vw', maxWidth: '500px' }"
+        appendTo="body"
+      >
+        <eligo-drawer-properties-form
+          [config]="drawerService.drawerConfig()"
+          [embedded]="true"
+        />
+      </p-dialog>
     </div>
   `,
   styles: [
@@ -141,14 +289,23 @@ import { ContextMenu } from 'primeng/contextmenu';
         width: 100%;
         height: 100%;
       }
-      
+
       :host ::ng-deep .p-panel .p-panel-header {
         padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
       }
-      
+
       :host ::ng-deep .p-panel .p-panel-content {
         padding: 0.75rem;
+      }
+
+      /* Hide scrollbar but keep functionality */
+      .no-scrollbar::-webkit-scrollbar {
+          display: none;
+      }
+      .no-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
       }
     `,
   ],
@@ -156,10 +313,9 @@ import { ContextMenu } from 'primeng/contextmenu';
 })
 export class CanvasStage implements AfterViewInit, OnDestroy {
   @ViewChild('canvasContainer') canvasContainer!: ElementRef<HTMLElement>;
-  @ViewChild('contextMenu') contextMenu!: ContextMenu;
 
-  private readonly drawerService = inject(DrawerService);
-  private readonly stateService = inject(ConfiguratorStateService);
+  protected readonly drawerService = inject(DrawerService);
+  protected readonly stateService = inject(ConfiguratorStateService);
   private readonly factoryService = inject(ThreeFactoryService);
   private readonly gridService = inject(GridService);
   private readonly platformId = inject(PLATFORM_ID);
@@ -171,16 +327,31 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
   private resizeObserver!: ResizeObserver;
 
-  protected readonly menuItems = signal<MenuItem[]>([]);
+  // UI State
   protected readonly showLabels = signal<boolean>(true);
+  protected readonly colorDialogVisible = signal<boolean>(false);
+  protected readonly settingsDialogVisible = signal<boolean>(false);
+  protected readonly drawerDialogVisible = signal<boolean>(false);
+
+  // Computed
+  protected readonly selectedBox = computed(() => {
+    const id = this.stateService.selectedBoxId();
+    if (!id) return null;
+    return this.drawerService.boxes().find((b) => b.id === id) || null;
+  });
+
+
+
+  // Dialog Configuration
+  protected readonly dialogBreakpoints = { '960px': '75vw', '640px': '90vw' };
 
   constructor() {
     effect(() => {
       const config = this.drawerService.drawerConfig();
-      
+
       // Update grid service with current drawer dimensions for cached layout
       this.gridService.updateDrawerDimensions(config.width, config.depth);
-      
+
       if (this.drawerVisualizer) {
         this.drawerVisualizer.update(config);
       }
@@ -194,7 +365,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       const selectedId = this.stateService.selectedBoxId();
       const errors = this.drawerService.validationErrors();
       const showLabels = this.showLabels();
-      
+
       if (this.boxVisualizer) {
         this.boxVisualizer.update(boxes, selectedId, errors, showLabels);
       }
@@ -214,7 +385,6 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   ngAfterViewInit(): void {
     // Only initialize Three.js in the browser, not during SSR
     if (isPlatformBrowser(this.platformId)) {
-      console.log('CanvasStage: ngAfterViewInit - Initializing Three.js');
       this.initThree();
       this.initResizeObserver();
     }
@@ -224,8 +394,6 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     if (!isPlatformBrowser(this.platformId)) {
       return;
     }
-    
-    console.log('CanvasStage: ngOnDestroy - Disposing Three.js');
 
     if (this.resizeObserver) {
       this.resizeObserver.disconnect();
@@ -265,19 +433,34 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     this.showLabels.update(v => !v);
   }
 
-  private initThree(): void {
-    const container = this.canvasContainer.nativeElement;
-    
-    console.log('CanvasStage: initThree - Container:', container);
-    console.log('CanvasStage: initThree - Container dimensions:', {
-      width: container.clientWidth,
-      height: container.clientHeight,
-      offsetWidth: container.offsetWidth,
-      offsetHeight: container.offsetHeight
+  addBox(): void {
+    this.stateService.startAddingBox();
+
+    const width = 6; // grid units
+    const depth = 6; // grid units
+
+    // Find free position safely, defaulting to 0,0 if service returns null for some reason
+    const freePosition = this.drawerService.findFirstFreePosition(width, depth);
+    const { x, y } = freePosition || { x: 0, y: 0 };
+
+    this.drawerService.addBox({
+      width,
+      depth,
+      height: 50,
+      x,
+      y,
+      color: 'white',
+      name: 'Pudełko',
     });
 
+    this.stateService.finishAddingBox();
+  }
+
+  private initThree(): void {
+    const container = this.canvasContainer.nativeElement;
+
     if (!container || container.clientWidth === 0 || container.clientHeight === 0) {
-      console.error('CanvasStage: initThree - Invalid container dimensions, retrying...');
+      // Retry initialization if container has no dimensions yet
       setTimeout(() => this.initThree(), 100);
       return;
     }
@@ -294,8 +477,6 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
     this.setupInteractionSubscriptions();
     this.performInitialRender();
-    
-    console.log('CanvasStage: initThree - Initialization complete');
   }
 
   private setupInteractionSubscriptions(): void {
@@ -308,8 +489,8 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     });
 
     this.interactionManager.boxResize$.subscribe((event) => {
-      this.drawerService.updateBox(event.id, { 
-        width: event.width, 
+      this.drawerService.updateBox(event.id, {
+        width: event.width,
         depth: event.depth,
         x: event.x,
         y: event.y
@@ -320,41 +501,10 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       // Check if box has boundary error
       const errors = this.drawerService.validationErrors();
       const boundaryError = errors.find(e => e.boxId === boxId && e.type === 'boundary');
-      
+
       if (boundaryError) {
         this.drawerService.repositionBox(boxId);
       }
-    });
-
-    this.interactionManager.boxContextMenu$.subscribe(({ boxId, event }) => {
-      this.stateService.selectBox(boxId);
-      
-      this.menuItems.set([
-        {
-          label: 'Duplikuj',
-          icon: 'pi pi-copy',
-          command: () => this.drawerService.duplicateBox(boxId)
-        },
-        {
-          label: 'Obróć',
-          icon: 'pi pi-refresh',
-          command: () => this.drawerService.rotateBox(boxId)
-        },
-        {
-          separator: true
-        },
-        {
-          label: 'Usuń',
-          icon: 'pi pi-trash',
-          styleClass: 'text-red-500',
-          command: () => {
-            this.drawerService.removeBox(boxId);
-            this.stateService.selectBox(null);
-          }
-        }
-      ]);
-
-      this.contextMenu.show(event);
     });
 
     this.interactionManager.dragStart$.subscribe(() => {
@@ -365,6 +515,29 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       this.facade.enableControls(true);
     });
   }
+
+  protected duplicateSelected(): void {
+    const id = this.stateService.selectedBoxId();
+    if (id) {
+      this.drawerService.duplicateBox(id);
+    }
+  }
+
+  protected rotateSelected(): void {
+    const id = this.stateService.selectedBoxId();
+    if (id) {
+      this.drawerService.rotateBox(id);
+    }
+  }
+
+  protected removeSelected(): void {
+    const id = this.stateService.selectedBoxId();
+    if (id) {
+      this.drawerService.removeBox(id);
+      this.stateService.selectBox(null);
+    }
+  }
+
 
   private performInitialRender(): void {
     const config = this.drawerService.drawerConfig();
@@ -394,7 +567,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     if (!this.facade) {
       return '';
     }
-    
+
     const scene = this.facade.getScene();
     const camera = this.facade.getCamera();
     const originalBackground = scene.background;
@@ -402,9 +575,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     // Store current camera state
     const originalPosition = camera.position.clone();
     const originalRotation = camera.rotation.clone();
-    // We also need to know where the controls are looking at, but OrbitControls doesn't expose target easily via facade
-    // However, we can just reset the camera to top-down view which is what we want.
-    
+
     // 1. Set white background for PDF
     scene.background = new THREE.Color(0xffffff);
 
@@ -413,7 +584,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     const config = this.drawerService.drawerConfig();
     const centerX = config.width / 2;
     const centerZ = config.depth / 2;
-    
+
     camera.position.set(centerX, 1000, centerZ);
     camera.lookAt(centerX, 0, centerZ);
     camera.updateProjectionMatrix();
@@ -425,21 +596,21 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     boxes.forEach((box, index) => {
       const sprite = this.factoryService.createLabelSprite(`${index + 1}`);
       const coords = this.gridService.convertBoxToMm(box);
-      
+
       // Position above the box center
       sprite.position.set(
         coords.x + coords.width / 2,
         coords.height + 30, // Lift label above the box
         coords.y + coords.depth / 2
       );
-      
+
       scene.add(sprite);
       labels.push(sprite);
     });
-    
+
     // 4. Render the scene with changes
     this.facade.render();
-    
+
     // 5. Capture canvas
     const canvas = this.facade.getRenderer().domElement;
     const dataUrl = canvas.toDataURL('image/png', 0.8);
@@ -450,21 +621,15 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       label.material.map?.dispose();
       label.material.dispose();
     });
-    
+
     // 7. Restore original background
     scene.background = originalBackground;
-    
+
     // 8. Restore camera
     camera.position.copy(originalPosition);
     camera.rotation.copy(originalRotation);
     camera.updateProjectionMatrix();
-    
-    // We need to tell controls to update if we want to be 100% sure, but facade doesn't expose it directly.
-    // Since we manually modified camera, the next controls.update() in loop might override it or be confused.
-    // But since we restored position/rotation, it should be fine.
-    // Ideally facade should have a method to save/restore view state.
-    // For now, this should work as long as we don't change controls target.
-    
+
     // 9. Render again to restore view for user
     this.facade.render();
 
