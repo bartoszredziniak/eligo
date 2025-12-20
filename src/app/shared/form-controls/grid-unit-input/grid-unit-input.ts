@@ -13,8 +13,8 @@ import { GridService } from '../../../core/services/grid.service';
   selector: 'eligo-grid-unit-input',
   imports: [FormsModule, InputNumberModule, InputGroupModule, InputGroupAddonModule, FloatLabelModule],
   template: `
-    <p-floatLabel variant="on">
-      <p-inputGroup>
+    <p-inputGroup>
+      <p-floatLabel variant="on" >
         <p-inputNumber
           [inputId]="inputId()"
           [ngModel]="value()"
@@ -23,16 +23,15 @@ import { GridService } from '../../../core/services/grid.service';
           [max]="max()"
           [step]="1"
           [placeholder]="placeholder()"
-          [styleClass]="narrow() ? 'w-20' : 'w-full'"
-          [class]="narrow() ? '' : 'flex-1'"
+          [class]="'w-full'"
           size="small"
         />
-        <p-inputGroupAddon>
-          <span class="text-xs">{{ gridUnitsLabel() }}</span>
-        </p-inputGroupAddon>
-      </p-inputGroup>
-      <label [for]="inputId()">{{ label() }}</label>
-    </p-floatLabel>
+        <label [for]="inputId()">{{ label() }}</label>
+      </p-floatLabel>
+      <p-inputGroupAddon>
+        <span class="text-xs whitespace-nowrap">{{ gridUnitsLabel() }}</span>
+      </p-inputGroupAddon>
+    </p-inputGroup>
     @if (showMmEquivalent()) {
       <span class="text-xs text-gray-500 mt-1 ml-1">{{ valueInMm() }}mm</span>
     }
@@ -54,7 +53,7 @@ export class GridUnitInput {
 
   readonly valueInMm = computed(() => this.gridService.gridUnitsToMm(this.value()));
   readonly cellSize = this.gridService.cellSize;
-  readonly gridUnitsLabel = computed(() => `× ${this.cellSize()}mm`);
+  readonly gridUnitsLabel = computed(() => `×${this.cellSize()}mm`);
 
   valueChange = output<number>();
 }

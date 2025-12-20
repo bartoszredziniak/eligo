@@ -1,4 +1,5 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { ConfirmationService } from 'primeng/api';
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
@@ -42,5 +43,6 @@ export const appConfig: ApplicationConfig = {
         },
       },
     }),
+    ConfirmationService,
   ],
 };

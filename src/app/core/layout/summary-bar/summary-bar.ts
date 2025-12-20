@@ -15,21 +15,25 @@ import { APP_CONFIG } from '../../config/app.config';
   providers: [MessageService],
   template: `
     <eligo-ui-bottom-bar>
-      <div class="flex items-center gap-4">
+      <div class="flex items-center gap-6">
+        <!-- Totals Section -->
         <div class="flex flex-col">
-          <span class="text-xs text-gray-500 uppercase tracking-wide">Szacowany koszt</span>
+          <span class="text-[10px] text-surface-500 uppercase tracking-widest font-semibold mb-1">Szacowany koszt</span>
           <div class="flex items-baseline gap-2">
-            <span class="text-2xl font-bold text-gray-900"> {{ price() | number: '1.2-2' }} PLN </span>
-            <span class="text-sm text-gray-500"> ({{ weight() | number: '1.0-0' }}g) </span>
+            <span class="text-2xl font-bold text-surface-900 leading-none">
+              {{ price() | number: '1.2-2' }} <span class="text-sm font-medium">PLN</span>
+            </span>
+            <span class="text-xs font-medium text-surface-400"> ({{ weight() | number: '1.0-0' }}g) </span>
           </div>
         </div>
 
-        <div class="h-8 w-px bg-gray-200 mx-2"></div>
+        <div class="h-10 w-px bg-surface-200 mx-2"></div>
 
+        <!-- Config Code Section -->
         <div class="flex flex-col">
-           <span class="text-xs text-gray-500 uppercase tracking-wide">Kod Konfiguracji</span>
+           <span class="text-[10px] text-surface-500 uppercase tracking-widest font-semibold mb-1">Kod Konfiguracji</span>
            <div class="flex items-center gap-2">
-             <code class="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600 font-mono max-w-[200px] truncate" [title]="configCode()">
+             <code class="text-xs bg-surface-100 px-2 py-1 round text-surface-600 font-mono border border-surface-200 max-w-[150px] truncate" [title]="configCode()">
                {{ configCode() }}
              </code>
              <p-button 
@@ -46,23 +50,28 @@ import { APP_CONFIG } from '../../config/app.config';
         </div>
       </div>
 
-      <div class="flex items-center gap-2">
+      <!-- Actions Section -->
+      <div class="flex items-center gap-3">
         <p-button
           label="Złóż zamówienie online"
           icon="pi pi-shopping-cart"
           [text]="true"
           severity="secondary"
+          size="small"
           (onClick)="openShop()"
         />
         <p-button
-        label="Generuj Zamówienie"
-        icon="pi pi-check"
-        [rounded]="true"
-        (onClick)="generateOrder.emit()"
+          label="Generuj Zamówienie"
+          icon="pi pi-check"
+          [rounded]="true"
+          size="small"
+          severity="primary"
+          [raised]="true"
+          (onClick)="generateOrder.emit()"
         />
       </div>
     </eligo-ui-bottom-bar>
-    <p-toast position="bottom-center" />
+    <p-toast position="bottom-center" [life]="2000" />
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,

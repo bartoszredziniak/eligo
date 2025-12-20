@@ -24,7 +24,7 @@ export class GridVisualizer {
     const geometry = this.createGridGeometry(gridLayout, cellSize);
     const material = new THREE.LineBasicMaterial({
       color: GRID_LINE_COLOR,
-      opacity: GRID_LINE_OPACITY,
+      opacity: 0.15, // Softer grid for cleaner look
       transparent: true,
     });
 
@@ -34,7 +34,7 @@ export class GridVisualizer {
     this.gridGroup.add(this.gridLines);
     this.gridGroup.position.set(
       gridLayout.offsetX,
-      0.1, // Slightly above floor to prevent z-fighting
+      0.5, // Slightly above floor to prevent z-fighting with rounded edges
       gridLayout.offsetY
     );
 

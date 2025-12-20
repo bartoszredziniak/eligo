@@ -3,7 +3,7 @@ import { Box, BoxColor } from '../../../../core/models/drawer.models';
 import { BoxValidationError } from '../../../../core/models/validation.models';
 import { ThreeFactoryService } from '../services/three-factory.service';
 import { GridService } from '../../../../core/services/grid.service';
-import { USER_DATA_KEYS, HandleSide } from '../constants';
+import { HandleSide, USER_DATA_KEYS } from '../constants';
 
 export class BoxMeshPool {
   private available: THREE.Mesh[] = [];
@@ -15,7 +15,7 @@ export class BoxMeshPool {
     private readonly gridService: GridService
   ) {}
 
-  updateBoxes(boxes: Box[], selectedId: string | null, errors: BoxValidationError[], showLabels: boolean = true): void {
+  updateBoxes(boxes: Box[], selectedId: string | null, errors: BoxValidationError[], showLabels = true): void {
     const newIds = new Set(boxes.map((b) => b.id));
 
     this.removeUnusedBoxes(newIds);
@@ -61,10 +61,12 @@ export class BoxMeshPool {
         if (
           Math.abs(prevWidth - coords.width) < 0.01 &&
           Math.abs(prevDepth - coords.depth) < 0.01 &&
+          Math.abs((mesh.userData['height'] || 0) - coords.height) < 0.01 &&
           prevColor === box.color
         ) {
            // Geometry and color same, just update position and visual overlays
-           mesh.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
+           const group = mesh as unknown as THREE.Group;
+           group.position.set(coords.x + coords.width / 2, 0.2, coords.y + coords.depth / 2);
            
            // Check if name changed for label update OR label visibility changed
            const prevName = mesh.userData['boxName'];
@@ -111,7 +113,10 @@ export class BoxMeshPool {
     const prevColor = group.userData['boxColor'];
     const prevShowLabels = group.userData['showLabels'];
 
-    const dimensionsChanged = Math.abs(prevWidth - coords.width) > 0.01 || Math.abs(prevDepth - coords.depth) > 0.01;
+    const dimensionsChanged = 
+      Math.abs(prevWidth - coords.width) > 0.01 || 
+      Math.abs(prevDepth - coords.depth) > 0.01 ||
+      Math.abs((group.userData['height'] || 0) - coords.height) > 0.01;
     const colorChanged = prevColor !== box.color;
     const nameChanged = prevName !== box.name;
     const showLabelsChanged = prevShowLabels !== showLabels;
@@ -123,12 +128,13 @@ export class BoxMeshPool {
         const newGroup = this.factory.createHollowBoxGroup(coords.width, coords.height, coords.depth, box.color);
         this.transferChildren(newGroup, group);
 
-        // Position using mm coordinates
-        group.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
+        // Position using mm coordinates, lift slightly to avoid z-fighting with drawer floor
+        group.position.set(coords.x + coords.width / 2, 0.2, coords.y + coords.depth / 2);
 
         group.userData[USER_DATA_KEYS.BOX_ID] = box.id;
         group.userData[USER_DATA_KEYS.WIDTH] = coords.width;
         group.userData[USER_DATA_KEYS.DEPTH] = coords.depth;
+        group.userData['height'] = coords.height;
         group.userData['boxColor'] = box.color;
     } else {
         // Just update position if needed
@@ -172,8 +178,9 @@ export class BoxMeshPool {
       // Create new label
       const labelMesh = this.factory.createLabelMesh(text, width, depth, group.userData['boxColor']);
       if (labelMesh) {
-        // Position above floor to avoid z-fighting
-        labelMesh.position.set(0, 3, 0);
+        // Position on the BOTTOM inside of the box
+        // floorThickness is 3mm. We place it slightly above the floor surface.
+        labelMesh.position.set(0, 3.2, 0); 
         group.add(labelMesh);
       }
     } catch (e) {
@@ -192,12 +199,13 @@ export class BoxMeshPool {
   ): void {
     // Handle Selection Highlight
     this.handleHighlight(mesh, widthMm, heightMm, depthMm, isSelected);
-    this.handleHandles(mesh, widthMm, heightMm, depthMm, isSelected);
+    // Handles removed - resizing is now done via UI properties form
 
     // Handle Error State (Red Color Overlay or Material Swap)
     const group = mesh as unknown as THREE.Group;
     group.children.forEach((child) => {
-      if (child.name === USER_DATA_KEYS.HIGHLIGHT || child.name === 'label' || child.userData[USER_DATA_KEYS.IS_HANDLE]) return;
+      // Skip label and highlight from material override
+      if (child.name === USER_DATA_KEYS.HIGHLIGHT || child.name === 'label') return;
       
       const meshChild = child as THREE.Mesh;
       if (error) {
@@ -229,62 +237,68 @@ export class BoxMeshPool {
     if (isSelected) {
       const highlight = this.factory.createSelectionHighlight(widthMm, heightMm, depthMm);
       highlight.name = USER_DATA_KEYS.HIGHLIGHT;
-      highlight.position.set(0, heightMm / 2, 0);
+      // Offset is now handled inside createSelectionHighlight for consistency
       mesh.add(highlight);
+      
+      this.updateHandles(mesh, widthMm, heightMm, depthMm, true);
+    } else {
+      this.updateHandles(mesh, widthMm, heightMm, depthMm, false);
     }
   }
 
-  private handleHandles(
-    mesh: THREE.Mesh,
-    widthMm: number,
-    heightMm: number,
-    depthMm: number,
-    isSelected: boolean
-  ): void {
-    // Remove existing handles
-    const existingHandles = mesh.children.filter((c) => c.userData[USER_DATA_KEYS.IS_HANDLE]);
-    existingHandles.forEach((handle) => {
-      mesh.remove(handle);
-      if (handle instanceof THREE.Mesh || handle instanceof THREE.Sprite) {
-        if (handle instanceof THREE.Mesh && handle.geometry) handle.geometry.dispose();
-        if (handle.material) {
-          if (Array.isArray(handle.material)) {
-            handle.material.forEach((m: THREE.Material) => m.dispose());
-          } else {
-            handle.material.dispose();
-          }
-          if (handle.material instanceof THREE.SpriteMaterial || handle.material instanceof THREE.MeshStandardMaterial || handle.material instanceof THREE.MeshBasicMaterial) {
-             if (handle.material.map) handle.material.map.dispose();
-          }
-        }
+  private updateHandles(mesh: THREE.Mesh, width: number, height: number, depth: number, visible: boolean): void {
+    const existingHandles = mesh.children.filter(c => c.userData[USER_DATA_KEYS.HANDLE_SIDE]);
+    
+    // If not visible, remove all
+    if (!visible) {
+      existingHandles.forEach(h => {
+        mesh.remove(h);
+        this.disposeObject(h);
+      });
+      return;
+    }
+
+    // If visible, ensure they exist and are positioned correctly
+    const sides = [HandleSide.LEFT, HandleSide.RIGHT, HandleSide.TOP, HandleSide.BOTTOM];
+    
+    sides.forEach(side => {
+      let handle = existingHandles.find(h => h.userData[USER_DATA_KEYS.HANDLE_SIDE] === side);
+      
+      if (!handle) {
+        const newHandle = this.factory.createResizeHandleMesh() as unknown as THREE.Object3D;
+        newHandle.userData[USER_DATA_KEYS.HANDLE_SIDE] = side;
+        newHandle.userData[USER_DATA_KEYS.BOX_ID] = mesh.userData[USER_DATA_KEYS.BOX_ID]; 
+        mesh.add(newHandle);
+        handle = newHandle;
+      }
+
+      // Explicitly check for handle to satisfy strict null checks
+      if (!handle) return;
+
+      // Actually, for "Top-Down" view, Y doesn't matter much for hit testing if we raycast appropriately,
+      // but visually it should be on top.
+      // Let's say handles are floating at height + 10mm.
+      
+      // mesh.userData doesn't have height stored easily? 
+      // updateVisualState receives heightMm.
+      
+      const hY = height + 10;
+
+      switch (side) {
+        case HandleSide.LEFT:
+           handle.position.set(-width / 2, hY, 0);
+           break;
+        case HandleSide.RIGHT:
+           handle.position.set(width / 2, hY, 0);
+           break;
+        case HandleSide.TOP: // Back (-Z)
+           handle.position.set(0, hY, -depth / 2);
+           break;
+        case HandleSide.BOTTOM: // Front (+Z)
+           handle.position.set(0, hY, depth / 2);
+           break;
       }
     });
-
-    if (isSelected) {
-      const halfWidth = widthMm / 2;
-      const halfDepth = depthMm / 2;
-      const yPos = heightMm / 2;
-
-      // Top (Back in 3D space relative to camera usually, but let's stick to Top/Bottom/Left/Right in 2D plan view)
-      // Actually, let's map:
-      // Top (Z-) -> Back
-      // Bottom (Z+) -> Front
-      // Left (X-) -> Left
-      // Right (X+) -> Right
-
-      this.addHandle(mesh, 0, yPos, -halfDepth, HandleSide.TOP);
-      this.addHandle(mesh, 0, yPos, halfDepth, HandleSide.BOTTOM);
-      this.addHandle(mesh, -halfWidth, yPos, 0, HandleSide.LEFT);
-      this.addHandle(mesh, halfWidth, yPos, 0, HandleSide.RIGHT);
-    }
-  }
-
-  private addHandle(parent: THREE.Mesh, x: number, y: number, z: number, side: HandleSide): void {
-    const handle = this.factory.createResizeHandle(side);
-    handle.position.set(x, y, z);
-    handle.userData[USER_DATA_KEYS.IS_HANDLE] = true;
-    handle.userData[USER_DATA_KEYS.HANDLE_SIDE] = side;
-    parent.add(handle);
   }
 
   private disposeGeometries(objects: THREE.Object3D[]): void {
@@ -304,6 +318,26 @@ export class BoxMeshPool {
     } else {
       material.dispose();
     }
+  }
+
+  private disposeObject(obj: THREE.Object3D): void {
+    obj.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((m) => m.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      } else if (child instanceof THREE.Sprite) {
+        if (child.material) {
+          if (child.material.map) child.material.map.dispose();
+          child.material.dispose();
+        }
+      }
+    });
   }
 
   private transferChildren(from: THREE.Group, to: THREE.Group): void {

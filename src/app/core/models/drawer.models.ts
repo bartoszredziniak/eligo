@@ -7,11 +7,11 @@ export interface DrawerConfig {
 export type BoxColor = 'black' | 'white' | 'beige' | 'light-gray' | 'dark-gray';
 
 export const BOX_COLORS: { label: string; value: BoxColor; hex: string }[] = [
-  { label: 'Czarny', value: 'black', hex: '#000000' },
-  { label: 'Biały', value: 'white', hex: '#ffffff' },
-  { label: 'Beżowy', value: 'beige', hex: '#f5f5dc' },
-  { label: 'Jasny Szary', value: 'light-gray', hex: '#d3d3d3' },
-  { label: 'Ciemny Szary', value: 'dark-gray', hex: '#a9a9a9' },
+  { label: 'Czarny', value: 'black', hex: '#1a1a1a' },
+  { label: 'Biały', value: 'white', hex: '#fdfdfd' },
+  { label: 'Beżowy', value: 'beige', hex: '#e5e0d8' },
+  { label: 'Jasny Szary', value: 'light-gray', hex: '#cfd2d1' },
+  { label: 'Ciemny Szary', value: 'dark-gray', hex: '#4a4d4e' },
 ];
 
 

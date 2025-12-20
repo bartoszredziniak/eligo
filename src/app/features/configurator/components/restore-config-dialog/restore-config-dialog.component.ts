@@ -15,6 +15,7 @@ import { DrawerService } from '../../../../core/services/drawer.service';
       header="Wczytaj Konfigurację" 
       [(visible)]="visible" 
       [modal]="true" 
+      [dismissableMask]="true"
       [style]="{ width: '40vw' }" 
       [draggable]="false" 
       [resizable]="false"
@@ -27,6 +28,7 @@ import { DrawerService } from '../../../../core/services/drawer.service';
 
         <textarea 
           pInputTextarea 
+          class="p-inputtext-sm w-full font-mono text-sm"
           [(ngModel)]="configCode" 
           rows="5" 
           class="w-full font-mono text-sm"

@@ -12,8 +12,8 @@ import { FloatLabelModule } from 'primeng/floatlabel';
   selector: 'eligo-mm-input',
   imports: [FormsModule, InputNumberModule, InputGroupModule, InputGroupAddonModule, FloatLabelModule],
   template: `
-    <p-floatLabel variant="on">
-      <p-inputGroup>
+    <p-inputGroup>
+      <p-floatLabel variant="on" class="flex-1">
         <p-inputNumber
           [inputId]="inputId()"
           [ngModel]="value()"
@@ -23,13 +23,17 @@ import { FloatLabelModule } from 'primeng/floatlabel';
           [step]="step()"
           [placeholder]="placeholder()"
           styleClass="w-full"
-          class="flex-1"
+          class="w-full"
           size="small"
         />
-        <p-inputGroupAddon>mm</p-inputGroupAddon>
-      </p-inputGroup>
-      <label [for]="inputId()">{{ label() }}</label>
-    </p-floatLabel>
+        <label [for]="inputId()">{{ label() }}</label>
+
+      </p-floatLabel>
+      <p-inputGroupAddon>
+        <span class="text-xs">mm</span>
+      </p-inputGroupAddon>
+    </p-inputGroup>
+    <ng-content />
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,

@@ -33,7 +33,7 @@ export class PdfGeneratorService {
       const mass = this.costCalculator.calculateBoxMass(box, cellSize);
       const price = this.costCalculator.calculateBoxPrice(mass);
       const coords = this.gridService.convertBoxToMm(box);
-      
+
       return {
         box,
         mass,
@@ -63,10 +63,10 @@ export class PdfGeneratorService {
   private async initializePdfMake(): Promise<void> {
     const pdfMake = await import('pdfmake/build/pdfmake');
     const pdfFonts = await import('pdfmake/build/vfs_fonts');
-    
+
     (window as any).pdfMake = pdfMake;
     (pdfMake as any).vfs = (pdfFonts as any).default || (pdfFonts as any).pdfMake?.vfs || pdfFonts;
-    
+
     this.pdfMakeInitialized = true;
   }
 
@@ -84,7 +84,7 @@ export class PdfGeneratorService {
     return {
       pageSize: 'A4',
       pageMargins: [40, 60, 40, 60],
-      
+
       header: {
         text: 'Eligo - Zamówienie',
         style: 'header',
@@ -110,7 +110,7 @@ export class PdfGeneratorService {
                 {
                   text: [
                     { text: 'Wymiary: ', bold: true },
-                    `${drawerConfig.width} × ${drawerConfig.depth} × ${drawerConfig.height} mm`
+                    `${drawerConfig.width} ×${drawerConfig.depth} ×${drawerConfig.height} mm`
                   ],
                   margin: [0, 0, 0, 2],
                   fontSize: 10
@@ -148,7 +148,7 @@ export class PdfGeneratorService {
           text: 'Lista Elementów',
           style: 'sectionHeader',
         },
-        
+
         // Create table with boxes
         {
           table: {
@@ -168,7 +168,7 @@ export class PdfGeneratorService {
                 {
                   stack: [
                     { text: data.box.name, style: 'boxName', margin: [0, 0, 0, 3] as [number, number, number, number] },
-                    { text: `Wymiary: ${data.coords.width.toFixed(0)}mm × ${data.coords.depth.toFixed(0)}mm × ${data.coords.height.toFixed(0)}mm`, style: 'details' },
+                    { text: `Wymiary: ${data.coords.width.toFixed(0)}mm × ${data.coords.depth.toFixed(0)}mm ×${data.coords.height.toFixed(0)}mm`, style: 'details' },
                     { text: `Kolor: ${this.getColorLabel(data.box.color)}`, style: 'details', margin: [0, 2, 0, 0] as [number, number, number, number] },
                   ],
                   style: 'tableCell',

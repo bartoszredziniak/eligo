@@ -7,7 +7,7 @@ export type MobileTab = 'canvas' | 'elements';
   selector: 'eligo-mobile-bottom-nav',
   imports: [CommonModule],
   template: `
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 md:hidden z-50 safe-area-bottom">
+    <nav class="bg-white border-t border-gray-200 md:hidden z-50 safe-area-bottom">
       <div class="flex justify-around items-center h-14">
         <button
           (click)="tabChange.emit('canvas')"
