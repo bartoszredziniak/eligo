@@ -11,51 +11,44 @@ import {DrawerService} from '../../../../../core/services/drawer.service';
   selector: 'eligo-drawer-properties-form',
   imports: [CommonModule, DividerModule, MmInput, SidebarSection],
   template: `
-    <ng-template #formContent>
-      <div class="flex flex-col gap-8">
-        <eligo-mm-input
-          inputId="drawer-width"
-          label="Szerokość"
-          [value]="config().width"
-          (valueChange)="updateWidth($event)"
-          [min]="200"
-          [max]="1200"
-        >
-          <span class="text-xs text-gray-400">{{ gridUnitsWidth() }} komórek ({{ cellSize() }}mm)</span>
-        </eligo-mm-input>
-
-        <eligo-mm-input
-          inputId="drawer-depth"
-          label="Głębokość"
-          [value]="config().depth"
-          (valueChange)="updateDepth($event)"
-          [min]="200"
-          [max]="1200"
-        >
-          <span class="text-xs text-gray-400">{{ gridUnitsDepth() }} komórek ({{ cellSize() }}mm)</span>
-        </eligo-mm-input>
-
-        <eligo-mm-input
-          inputId="drawer-height"
-          label="Wysokość"
-          [value]="config().height"
-          (valueChange)="updateHeight($event)"
-          [min]="30"
-          [max]="300"
-        />
-      </div>
-    </ng-template>
-
-    @if (embedded()) {
-      <div class="mb-4">
-        <ng-container *ngTemplateOutlet="formContent" />
-      </div>
-    } @else {
+    <div class="flex flex-col gap-8">
       <eligo-sidebar-section>
         <span header>Wymiary szuflady</span>
-        <ng-container *ngTemplateOutlet="formContent" />
+        
+        <div class="flex flex-col gap-6">
+          <eligo-mm-input
+            inputId="drawer-width"
+            label="Szerokość"
+            [value]="config().width"
+            (valueChange)="updateWidth($event)"
+            [min]="200"
+            [max]="1200"
+          >
+            <span class="text-xs text-surface-500 mt-1 block">{{ gridUnitsWidth() }} komórek ({{ cellSize() }}mm)</span>
+          </eligo-mm-input>
+
+          <eligo-mm-input
+            inputId="drawer-depth"
+            label="Głębokość"
+            [value]="config().depth"
+            (valueChange)="updateDepth($event)"
+            [min]="200"
+            [max]="1200"
+          >
+            <span class="text-xs text-surface-500 mt-1 block">{{ gridUnitsDepth() }} komórek ({{ cellSize() }}mm)</span>
+          </eligo-mm-input>
+
+          <eligo-mm-input
+            inputId="drawer-height"
+            label="Wysokość"
+            [value]="config().height"
+            (valueChange)="updateHeight($event)"
+            [min]="30"
+            [max]="300"
+          />
+        </div>
       </eligo-sidebar-section>
-    }
+    </div>
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,

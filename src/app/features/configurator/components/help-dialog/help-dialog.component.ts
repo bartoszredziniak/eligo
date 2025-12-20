@@ -11,6 +11,7 @@ import { ButtonModule } from 'primeng/button';
       header="Pomoc" 
       [(visible)]="visible" 
       [modal]="true" 
+      [dismissableMask]="true"
       [style]="{ width: '50vw' }" 
       [draggable]="false" 
       [resizable]="false"
@@ -29,6 +30,9 @@ import { ButtonModule } from 'primeng/button';
           <ol class="list-decimal list-inside space-y-2 text-gray-700">
             <li>Zaprojektuj swój wkład w tym konfiguratorze.</li>
             <li>
+              Pamiętaj, że możesz <strong>swobodnie przesuwać</strong> oraz <strong>zmieniać wymiary</strong> pudełek (chwytając za kropki na krawędziach).
+            </li>
+            <li>
               Zwróć uwagę na <strong>Kod Konfiguracji</strong> widoczny na dole ekranu. Będzie on potrzebny do realizacji zamówienia.
             </li>
             <li>
@@ -36,7 +40,7 @@ import { ButtonModule } from 'primeng/button';
               <a href="#" class="text-blue-600 hover:underline font-medium">Allegro</a>.
             </li>
             <li>
-              Dodaj do koszyka odpowiednią liczbę przedmiotów, tak aby łączna kwota odpowiadała kwocie widocznej w konfiguratorze (lub była jej wielokrotnością zgodnie z instrukcją na aukcji).
+              Dodaj do koszyka odpowiednią liczbę przedmiotów, tak aby łączna kwota odpowiadała kwocie widocznej w konfiguratorze.
             </li>
             <li>
               W <strong>wiadomości do sprzedającego</strong> wklej wygenerowany Kod Konfiguracji.

@@ -3,10 +3,10 @@ import {CommonModule} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {ButtonModule} from 'primeng/button';
 import {ListboxModule} from 'primeng/listbox';
-import {Select} from 'primeng/select';
 import {InputText} from 'primeng/inputtext';
 import {FloatLabelModule} from 'primeng/floatlabel';
 import {DividerModule} from 'primeng/divider';
+import {ConfirmationService} from 'primeng/api';
 import {GridUnitInput} from '../../../../../shared/form-controls/grid-unit-input/grid-unit-input';
 import {MmInput} from '../../../../../shared/form-controls/mm-input/mm-input';
 import {Box, BOX_COLORS, BoxColor, BOX_PRESETS, BoxPreset} from '../../../../../core/models/drawer.models';
@@ -23,7 +23,6 @@ import {ConfiguratorStateService} from '../../../../../core/services/configurato
     FormsModule,
     ButtonModule,
     ListboxModule,
-    Select,
     InputText,
     FloatLabelModule,
     DividerModule,
@@ -32,165 +31,145 @@ import {ConfiguratorStateService} from '../../../../../core/services/configurato
     SidebarSection
   ],
   template: `
-    <!-- Templates -->
-    <ng-template #basicContent>
-      <p-floatLabel variant="on">
-        <input
-          pInputText
-          id="box-name"
-          [ngModel]="box().name"
-          (ngModelChange)="updateName($event)"
-          class="w-full"
-          pSize="small"
-        />
-        <label for="box-name">Nazwa</label>
-      </p-floatLabel>
-
-      <p-floatLabel variant="on">
-        <p-select
-          inputId="box-preset"
-          [options]="presets"
-          optionLabel="label"
-          (onChange)="applyPreset($event.value)"
-          styleClass="w-full"
-          [showClear]="true"
-          (onClear)="clearPreset()"
-          size="small"
-        />
-        <label for="box-preset">Szablon</label>
-      </p-floatLabel>
-    </ng-template>
-
-    <ng-template #dimensionsContent>
-      <eligo-grid-unit-input
-        inputId="box-width"
-        label="Szerokość"
-        [value]="box().width"
-        (valueChange)="updateWidth($event)"
-        [min]="1"
-        [max]="maxWidth()"
-      />
-      <eligo-grid-unit-input
-        inputId="box-depth"
-        label="Głębokość"
-        [value]="box().depth"
-        (valueChange)="updateDepth($event)"
-        [min]="1"
-        [max]="maxDepth()"
-      />
-      <eligo-mm-input
-        inputId="box-height"
-        label="Wysokość"
-        [value]="box().height"
-        (valueChange)="updateHeight($event)"
-        [min]="5"
-        [max]="maxHeight()"
-      />
-    </ng-template>
-
-    <ng-template #appearanceContent>
-      <p-listbox
-        [options]="availableColors"
-        [ngModel]="box().color"
-        (ngModelChange)="updateColor($event)"
-        optionLabel="label"
-        optionValue="value"
-        [listStyle]="{'max-height': embedded() ? '250px' : '150px'}"
-        styleClass="w-full border-0"
-      >
-        <ng-template let-color pTemplate="item">
-          <div class="flex items-center gap-2 cursor-pointer select-none">
-            <div class="w-5 h-5 rounded border border-surface-300 shadow-sm"
-                 [style.background-color]="color.hex">
-            </div>
-            <span class="text-sm">{{ color.label }}</span>
-          </div>
-        </ng-template>
-      </p-listbox>
-    </ng-template>
-
-    <!-- Basic Section -->
-    @if (isVisible('basic')) {
-      @if (embedded()) {
-        <div class="flex flex-col gap-4 mb-4">
-          <ng-container *ngTemplateOutlet="basicContent" />
-        </div>
-      } @else {
+    <!-- Dynamic Form Sections -->
+    <div class="flex flex-col gap-6">
+      
+      <!-- Basic Info -->
+      @if (isVisible('basic')) {
         <eligo-sidebar-section>
-          <span header>Podstawowe</span>
-          <div class="flex flex-col gap-4">
-            <ng-container *ngTemplateOutlet="basicContent" />
+          <span header>Pudełko</span>
+          <p-floatLabel variant="on">
+            <input
+              pInputText
+              id="box-name"
+              [ngModel]="box().name"
+              (ngModelChange)="updateName($event)"
+              class="w-full"
+              pSize="small"
+            />
+            <label for="box-name">Nazwa</label>
+          </p-floatLabel>
+        </eligo-sidebar-section>
+      }
+
+      <!-- Templates -->
+      @if (isVisible('basic')) {
+        <eligo-sidebar-section>
+          <span header>Szablony</span>
+          <div class="grid grid-cols-2 gap-2">
+            @for (preset of presets; track preset.label) {
+              <button
+                type="button"
+                (click)="confirmApplyPreset(preset)"
+                class="flex flex-col items-start p-3 text-left transition-all border rounded-lg hover:border-primary-500 hover:bg-primary-50 group border-surface-200"
+              >
+                <span class="mb-1 text-sm font-semibold text-surface-900 group-hover:text-primary-700">{{ preset.label }}</span>
+                <span class="text-xs text-surface-500">{{ preset.width }}x{{ preset.depth }} j.g.</span>
+              </button>
+            }
           </div>
         </eligo-sidebar-section>
       }
-    }
 
-    <!-- Dimensions Section -->
-    @if (isVisible('dimensions')) {
-      @if (embedded()) {
-        <div class="flex flex-col gap-2 mb-4">
-          <ng-container *ngTemplateOutlet="dimensionsContent" />
-        </div>
-      } @else {
+      <!-- Dimensions -->
+      @if (isVisible('dimensions')) {
         <eligo-sidebar-section>
           <span header>Wymiary</span>
-          <ng-container *ngTemplateOutlet="dimensionsContent" />
+          <div class="flex flex-col gap-4">
+            <eligo-grid-unit-input
+              inputId="box-width"
+              label="Szerokość"
+              [value]="box().width"
+              (valueChange)="updateWidth($event)"
+              [min]="1"
+              [max]="maxWidth()"
+            />
+            <eligo-grid-unit-input
+              inputId="box-depth"
+              label="Głębokość"
+              [value]="box().depth"
+              (valueChange)="updateDepth($event)"
+              [min]="1"
+              [max]="maxDepth()"
+            />
+            <eligo-mm-input
+              inputId="box-height"
+              label="Wysokość"
+              [value]="box().height"
+              (valueChange)="updateHeight($event)"
+              [min]="5"
+              [max]="maxHeight()"
+            />
+          </div>
         </eligo-sidebar-section>
       }
-    }
 
-    <!-- Appearance Section -->
-    @if (isVisible('appearance')) {
-      @if (embedded()) {
-        <div class="mb-4">
-          <ng-container *ngTemplateOutlet="appearanceContent" />
-        </div>
-      } @else {
+      <!-- Appearance -->
+      @if (isVisible('appearance')) {
         <eligo-sidebar-section>
           <span header>Wygląd</span>
-          <ng-container *ngTemplateOutlet="appearanceContent" />
+          <p-listbox
+            [options]="availableColors"
+            [ngModel]="box().color"
+            (ngModelChange)="updateColor($event)"
+            optionLabel="label"
+            optionValue="value"
+            [listStyle]="{'max-height': embedded() ? '200px' : '150px'}"
+            styleClass="w-full border-0"
+          >
+            <ng-template let-color pTemplate="item">
+              <div class="flex items-center gap-2 cursor-pointer select-none">
+                <div class="w-5 h-5 rounded border border-surface-300 shadow-sm"
+                     [style.background-color]="color.hex">
+                </div>
+                <span class="text-sm font-medium">{{ color.label }}</span>
+              </div>
+            </ng-template>
+          </p-listbox>
         </eligo-sidebar-section>
       }
-    }
 
-    <!-- Actions Section -->
-    @if (isVisible('actions')) {
-      <eligo-sidebar-section>
-        <span header>Akcje</span>
+      <!-- Actions -->
+      @if (isVisible('actions')) {
+        <eligo-sidebar-section>
+          <span header>Akcje</span>
+          <div class="flex flex-col gap-2">
+            <div class="grid grid-cols-2 gap-2">
+              <p-button
+                label="Duplikuj"
+                icon="pi pi-copy"
+                severity="secondary"
+                [outlined]="true"
+                size="small"
+                (onClick)="duplicate()"
+                class="w-full"
+                styleClass="w-full"
+              />
+              <p-button
+                label="Obróć"
+                icon="pi pi-refresh"
+                severity="secondary"
+                [outlined]="true"
+                size="small"
+                (onClick)="rotate()"
+                class="w-full"
+                styleClass="w-full"
+              />
+            </div>
 
-        <div class="flex flex-col gap-2">
-          <div class="grid grid-cols-2 gap-2">
             <p-button
-              label="Duplikuj"
-              icon="pi pi-copy"
-              severity="secondary"
-              outlined="true"
+              label="Usuń"
+              icon="pi pi-trash"
+              severity="danger"
               size="small"
-              (onClick)="duplicate()"
-              styleClass="w-full"
-            />
-            <p-button
-              label="Obróć"
-              icon="pi pi-refresh"
-              severity="secondary"
-              outlined="true"
-              size="small"
-              (onClick)="rotate()"
+              (onClick)="deleteBox()"
+              class="w-full"
               styleClass="w-full"
             />
           </div>
-
-          <p-button
-            label="Usuń"
-            icon="pi pi-trash"
-            severity="danger"
-            size="small"
-            (onClick)="deleteBox()"
-            styleClass="w-full"
-          />
-        </div>
-      </eligo-sidebar-section>
-    }
+        </eligo-sidebar-section>
+      }
+    </div>
   `,
   styles: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -199,6 +178,7 @@ export class BoxPropertiesForm {
   private readonly gridService = inject(GridService);
   private readonly drawerService = inject(DrawerService);
   private readonly stateService = inject(ConfiguratorStateService);
+  private readonly confirmationService = inject(ConfirmationService);
 
   box = input.required<Box>();
   drawerHeight = input.required<number>();
@@ -249,23 +229,39 @@ export class BoxPropertiesForm {
     this.drawerService.updateBox(this.box().id, { name });
   }
 
-  applyPreset(preset: BoxPreset | null) {
-    if (!preset) return;
+  confirmApplyPreset(preset: BoxPreset) {
+    this.confirmationService.confirm({
+      message: `Zastosowanie szablonu "<strong>${preset.label}</strong>" zmieni wymiary pudełka na <strong>${preset.width}x${preset.depth} j.g.</strong> oraz jego nazwę. Czy na pewno chcesz kontynuować?`,
+      header: 'Potwierdzenie zmiany szablonu',
+      icon: 'pi pi-exclamation-triangle',
+      rejectLabel: 'Anuluj',
+      rejectButtonProps: {
+        label: 'Anuluj',
+        severity: 'secondary',
+        outlined: true,
+      },
+      acceptLabel: 'Zastosuj',
+      acceptButtonProps: {
+        label: 'Zastosuj',
+        severity: 'primary',
+      },
+      accept: () => {
+        this.applyPreset(preset);
+      }
+    });
+  }
 
+  private applyPreset(preset: BoxPreset) {
     this.updateWidth(preset.width);
     this.updateDepth(preset.depth);
 
     const currentName = this.box().name;
-    const isDefaultName = currentName === 'Pudełko';
+    const isDefaultName = currentName === 'Pudełko' || !currentName;
     const isPresetName = this.presets.some(p => p.label === currentName);
 
     if (isDefaultName || isPresetName) {
       this.updateName(preset.label);
     }
-  }
-
-  clearPreset() {
-    // Optional
   }
 
   duplicate() {

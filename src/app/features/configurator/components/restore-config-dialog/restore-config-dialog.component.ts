@@ -15,6 +15,7 @@ import { DrawerService } from '../../../../core/services/drawer.service';
       header="Wczytaj Konfigurację" 
       [(visible)]="visible" 
       [modal]="true" 
+      [dismissableMask]="true"
       [style]="{ width: '40vw' }" 
       [draggable]="false" 
       [resizable]="false"

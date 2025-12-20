@@ -58,6 +58,7 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
         mobileFooter
         [price]="drawerService.totalPrice()"
         [weight]="drawerService.totalWeight()"
+        [configCode]="drawerService.configCode()"
         (generateOrder)="onGenerateOrder()"
       />
 
