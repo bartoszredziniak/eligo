@@ -70,10 +70,22 @@ import { TooltipModule } from 'primeng/tooltip';
       </div>
 
       <!-- Bottom Action Bar Layer -->
-      <div class="absolute bottom-6 md:bottom-5 left-1/2 -translate-x-1/2 z-20 pointer-events-auto max-w-[95vw]">
+      <div class="absolute bottom-4 md:bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-auto max-w-[90vw]">
+        <!-- Floating Dimensions Badge -->
+        @if (selectedBoxDimensions(); as dims) {
+          <div class="flex items-center justify-center gap-2 mb-2">
+            <div class="flex items-center gap-2 px-3 py-1.5 bg-surface-900/80 backdrop-blur-sm rounded-full shadow-lg text-[11px] font-medium text-white">
+              <span>{{ dims.width }}</span>
+              <span class="text-surface-400">×</span>
+              <span>{{ dims.depth }}</span>
+              <span class="text-surface-400">×</span>
+              <span>{{ dims.height }}</span>
+              <span class="text-[9px] text-surface-400 ml-0.5">mm</span>
+            </div>
+          </div>
+        }
         <eligo-canvas-action-bar
           [hasSelection]="!!stateService.selectedBoxId()"
-          [dimensions]="selectedBoxDimensions()"
           (colorClicked)="colorDialogVisible.set(true)"
           (settingsClicked)="settingsDialogVisible.set(true)"
           (duplicateClicked)="duplicateSelected()"
@@ -84,12 +96,13 @@ import { TooltipModule } from 'primeng/tooltip';
       </div>
 
       <!-- Zoom Controls -->
-      <div class="absolute bottom-6 right-6 z-20 flex flex-col gap-2 pointer-events-auto">
+      <div class="absolute bottom-20 md:bottom-16 right-2 z-20 flex flex-col gap-1.5 pointer-events-auto">
         <p-button
           icon="pi pi-plus"
           [rounded]="true"
           severity="secondary"
           [raised]="true"
+          size="small"
           (onClick)="zoomIn()"
           pTooltip="Przybliż"
           tooltipPosition="left"
@@ -99,8 +112,19 @@ import { TooltipModule } from 'primeng/tooltip';
           [rounded]="true"
           severity="secondary"
           [raised]="true"
+          size="small"
           (onClick)="zoomOut()"
           pTooltip="Oddal"
+          tooltipPosition="left"
+        />
+        <p-button
+          icon="pi pi-home"
+          [rounded]="true"
+          severity="secondary"
+          [raised]="true"
+          size="small"
+          (onClick)="resetView()"
+          pTooltip="Wycentruj widok"
           tooltipPosition="left"
         />
       </div>
@@ -360,6 +384,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
   protected zoomIn(): void { this.facade?.zoomIn(); }
   protected zoomOut(): void { this.facade?.zoomOut(); }
+  protected resetView(): void { this.facade?.resetCameraAndCenter(); }
 
   private performInitialRender(): void {
     const config = this.drawerService.drawerConfig();
@@ -372,6 +397,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   private updateControlsForConfig(config: DrawerConfig): void {
     this.interactionManager.updateDrawerDimensions(config.width, config.depth);
     this.facade.setControlsTarget(config.width / 2, 0, config.depth / 2);
+    this.facade.setDrawerDimensions(config.width, config.depth);
   }
 
   private initResizeObserver(): void {

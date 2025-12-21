@@ -40,6 +40,7 @@ import { ButtonModule } from 'primeng/button';
       <div
         #scrollContainer
         class="flex-1 overflow-x-auto overflow-y-hidden scroll-smooth no-scrollbar flex items-center gap-2 px-1 h-full"
+        style="touch-action: pan-x;"
         (scroll)="onScroll()"
         [style.mask-image]="maskImage()"
         [style.-webkit-mask-image]="maskImage()"

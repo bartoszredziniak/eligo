@@ -8,6 +8,10 @@ export class ThreeSceneFacade {
   private controls!: OrbitControls;
   private animationId: number | null = null;
   
+  // Drawer dimensions for pan limits
+  private drawerWidth = 0;
+  private drawerDepth = 0;
+  
   // Orthographic camera settings
   private readonly frustumSize = 1000; // Visible area size in mm roughly
 
@@ -102,6 +106,48 @@ export class ThreeSceneFacade {
     }
   }
 
+  /**
+   * Update drawer dimensions for pan limits
+   */
+  setDrawerDimensions(width: number, depth: number): void {
+    this.drawerWidth = width;
+    this.drawerDepth = depth;
+  }
+
+  /**
+   * Apply pan limits based on visible viewport and drawer size
+   */
+  private applyPanLimits(): void {
+    if (!this.camera || !this.controls || !this.drawerWidth || !this.drawerDepth) {
+      return;
+    }
+
+    const target = this.controls.target;
+    const centerX = this.drawerWidth / 2;
+    const centerZ = this.drawerDepth / 2;
+
+    // Calculate visible area in world units
+    const viewWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
+    const viewHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
+
+    // Allow panning so that at least 30% of viewport shows the drawer
+    // This means target can move up to 35% of view away from drawer center
+    const maxOffsetX = viewWidth * 0.35 + this.drawerWidth / 2;
+    const maxOffsetZ = viewHeight * 0.35 + this.drawerDepth / 2;
+
+    // Clamp target position
+    const clampedX = Math.max(centerX - maxOffsetX, Math.min(centerX + maxOffsetX, target.x));
+    const clampedZ = Math.max(centerZ - maxOffsetZ, Math.min(centerZ + maxOffsetZ, target.z));
+
+    if (target.x !== clampedX || target.z !== clampedZ) {
+      target.x = clampedX;
+      target.z = clampedZ;
+      // Re-position camera to maintain offset from target
+      this.camera.position.x = clampedX + 500;
+      this.camera.position.z = clampedZ + 500;
+    }
+  }
+
   resetCamera(): void {
     if (this.controls && this.camera) {
       const target = this.controls.target;
@@ -110,7 +156,25 @@ export class ThreeSceneFacade {
       this.camera.position.set(target.x + 500, 500, target.z + 500);
       this.camera.lookAt(target.x, 0, target.z);
       this.camera.zoom = 1;
-      this.camera.updateProjectionMatrix(); // Important for ortho zoom handling
+      this.camera.updateProjectionMatrix();
+      
+      this.controls.update();
+    }
+  }
+
+  /**
+   * Reset zoom and center view on the drawer
+   */
+  resetCameraAndCenter(): void {
+    if (this.controls && this.camera && this.drawerWidth && this.drawerDepth) {
+      const centerX = this.drawerWidth / 2;
+      const centerZ = this.drawerDepth / 2;
+      
+      this.controls.target.set(centerX, 0, centerZ);
+      this.camera.position.set(centerX + 500, 500, centerZ + 500);
+      this.camera.lookAt(centerX, 0, centerZ);
+      this.camera.zoom = 1;
+      this.camera.updateProjectionMatrix();
       
       this.controls.update();
     }
@@ -184,6 +248,7 @@ export class ThreeSceneFacade {
     const animate = () => {
       this.animationId = requestAnimationFrame(animate);
       this.controls.update();
+      this.applyPanLimits();
       this.updateHandleScales();
       this.renderer.render(this.scene, this.camera);
     };

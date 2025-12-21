@@ -6,31 +6,10 @@ import { ScrollableContainerComponent } from '../../../../shared/components/scro
   selector: 'eligo-canvas-action-bar',
   imports: [ButtonModule, ScrollableContainerComponent],
   template: `
-    <div class="flex flex-col items-center gap-3">
+    <div class="flex flex-col items-center gap-2 w-full">
       @if (hasSelection()) {
-        @if (dimensions(); as dims) {
-          <!-- Floating Dimensions Pill -->
-          <div class="flex items-center gap-3 px-4 py-2 bg-surface-0/90 backdrop-blur-sm rounded-full shadow-lg border border-surface-200 text-xs font-semibold animate-fadein">
-            <div class="flex items-center gap-1.5" title="Szerokość">
-              <i class="pi pi-arrows-h text-[10px] text-surface-500"></i>
-              <span class="text-surface-900">{{ dims.width }}</span>
-            </div>
-            <div class="w-px h-3 bg-surface-200"></div>
-            <div class="flex items-center gap-1.5" title="Głębokość">
-              <i class="pi pi-arrows-v text-[10px] text-surface-500"></i>
-              <span class="text-surface-900">{{ dims.depth }}</span>
-            </div>
-            <div class="w-px h-3 bg-surface-200"></div>
-            <div class="flex items-center gap-1.5" title="Wysokość">
-              <i class="pi pi-arrow-up text-[10px] text-surface-500"></i>
-              <span class="text-surface-900">{{ dims.height }}</span>
-            </div>
-            <span class="text-[9px] uppercase tracking-wider text-surface-400 font-bold ml-1">mm</span>
-          </div>
-        }
-
         <!-- Action Bar -->
-        <div class="rounded-full bg-surface-0/90 backdrop-blur-sm shadow-xl border border-surface-200 overflow-hidden min-w-fit">
+        <div class="rounded-full bg-surface-0/90 backdrop-blur-sm shadow-xl border border-surface-200 overflow-hidden max-w-full">
           <eligo-scrollable-container>
             <div class="flex items-center gap-2 p-2">
               <!-- Selected Box Actions -->
@@ -91,7 +70,7 @@ import { ScrollableContainerComponent } from '../../../../shared/components/scro
         </div>
       } @else {
         <!-- No Selection Actions -->
-        <div class="rounded-full bg-surface-0/90 backdrop-blur-sm shadow-xl border border-surface-200 overflow-hidden min-w-fit">
+        <div class="rounded-full bg-surface-0/90 backdrop-blur-sm shadow-xl border border-surface-200 overflow-hidden max-w-full">
           <eligo-scrollable-container>
             <div class="flex items-center gap-2 p-2">
               <p-button
@@ -114,7 +93,6 @@ import { ScrollableContainerComponent } from '../../../../shared/components/scro
 })
 export class CanvasActionBar {
   hasSelection = input<boolean>(false);
-  dimensions = input<{ width: number; depth: number; height: number } | null>(null);
 
   colorClicked = output<void>();
   settingsClicked = output<void>();
