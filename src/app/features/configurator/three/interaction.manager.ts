@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { Subject } from 'rxjs';
 import { GridService } from '../../../core/services/grid.service';
 import { HandleSide, USER_DATA_KEYS } from './constants';
+import { Box } from '../../../core/models/drawer.models';
+import { GridLayout } from '../../../core/models/grid.models';
 
 export class InteractionManager {
   private raycaster = new THREE.Raycaster();
@@ -48,6 +50,12 @@ export class InteractionManager {
   private pointerDownPos = new THREE.Vector2();
   private isPointerDown = false;
 
+  // Constraint validation state
+  private boxes: Box[] = [];
+  private gridLayout: GridLayout = { gridUnitsWidth: 0, gridUnitsDepth: 0, offsetX: 0, offsetY: 0, totalWidthMm: 0, totalDepthMm: 0 };
+  private lastValidDragPosition: { x: number; y: number } | null = null;
+  private lastValidResize: { width: number; depth: number; x: number; y: number } | null = null;
+
   constructor(
     private readonly camera: THREE.Camera,
     private readonly scene: THREE.Scene,
@@ -60,6 +68,14 @@ export class InteractionManager {
 
   setOversizedBoxes(ids: Set<string>): void {
     this.oversizedBoxIds = ids;
+  }
+
+  updateBoxes(boxes: Box[]): void {
+    this.boxes = boxes;
+  }
+
+  updateGridLayout(layout: GridLayout): void {
+    this.gridLayout = layout;
   }
 
   onPointerDown(event: PointerEvent, rect: DOMRect): void {
@@ -131,13 +147,21 @@ export class InteractionManager {
         const mesh = this.findMeshById(this.draggedBoxId);
         if (!mesh) return;
 
+        const currentBox = this.boxes.find(b => b.id === this.draggedBoxId);
+        if (!currentBox) return;
+
         const clampedPosition = this.calculateSnappedPosition(target, mesh);
 
-        this._boxDrag.next({
-            id: this.draggedBoxId,
-            x: clampedPosition.x,
-            y: clampedPosition.y,
-        });
+        // Validate that the new position is valid (within bounds and no collisions)
+        if (this.isValidPosition(this.draggedBoxId, clampedPosition.x, clampedPosition.y, currentBox.width, currentBox.depth)) {
+            this.lastValidDragPosition = { x: clampedPosition.x, y: clampedPosition.y };
+            this._boxDrag.next({
+                id: this.draggedBoxId,
+                x: clampedPosition.x,
+                y: clampedPosition.y,
+            });
+        }
+        // If invalid, don't emit - box stays at last valid position
     }
   }
 
@@ -323,13 +347,29 @@ export class InteractionManager {
           newZ = bottomEdge - newDepth / 2;
       }
       
-      this._boxResize.next({
-          id: this.resizingBoxId!,
-          width: this.gridService.mmToGridUnits(newWidth),
-          depth: this.gridService.mmToGridUnits(newDepth),
-          x: this.gridService.mmToGridUnits(newX - newWidth / 2),
-          y: this.gridService.mmToGridUnits(newZ - newDepth / 2)
-      });
+      // Convert to grid units for validation
+      const newWidthGridUnits = this.gridService.mmToGridUnits(newWidth);
+      const newDepthGridUnits = this.gridService.mmToGridUnits(newDepth);
+      const newXGridUnits = this.gridService.mmToGridUnits(newX - newWidth / 2);
+      const newYGridUnits = this.gridService.mmToGridUnits(newZ - newDepth / 2);
+      
+      // Validate that the new size and position are valid
+      if (this.isValidPosition(this.resizingBoxId!, newXGridUnits, newYGridUnits, newWidthGridUnits, newDepthGridUnits)) {
+          this.lastValidResize = { 
+              width: newWidthGridUnits, 
+              depth: newDepthGridUnits, 
+              x: newXGridUnits, 
+              y: newYGridUnits 
+          };
+          this._boxResize.next({
+              id: this.resizingBoxId!,
+              width: newWidthGridUnits,
+              depth: newDepthGridUnits,
+              x: newXGridUnits,
+              y: newYGridUnits
+          });
+      }
+      // If invalid, don't emit - box stays at last valid size/position
   }
 
   private startDrag(
@@ -370,5 +410,56 @@ export class InteractionManager {
   private updateMouse(event: PointerEvent, rect: DOMRect): void {
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  /**
+   * Check if a box at given position with given size is within drawer bounds
+   */
+  private isWithinBounds(x: number, y: number, width: number, depth: number): boolean {
+    return (
+      x >= 0 &&
+      y >= 0 &&
+      x + width <= this.gridLayout.gridUnitsWidth &&
+      y + depth <= this.gridLayout.gridUnitsDepth
+    );
+  }
+
+  /**
+   * Check if two boxes collide (AABB collision detection)
+   */
+  private checkCollision(b1: { x: number; y: number; width: number; depth: number },
+                         b2: { x: number; y: number; width: number; depth: number }): boolean {
+    // Check if one box is to the left or right of the other
+    if (b1.x + b1.width <= b2.x || b2.x + b2.width <= b1.x) {
+      return false;
+    }
+    // Check if one box is above or below the other
+    if (b1.y + b1.depth <= b2.y || b2.y + b2.depth <= b1.y) {
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Check if moving a box to a new position would cause collision with other boxes
+   */
+  private hasCollisionWithOthers(boxId: string, x: number, y: number, width: number, depth: number): boolean {
+    const testBox = { x, y, width, depth };
+    
+    for (const box of this.boxes) {
+      if (box.id === boxId) continue;
+      if (this.checkCollision(testBox, box)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Validate if a position is valid (within bounds and no collisions)
+   */
+  private isValidPosition(boxId: string, x: number, y: number, width: number, depth: number): boolean {
+    return this.isWithinBounds(x, y, width, depth) && 
+           !this.hasCollisionWithOthers(boxId, x, y, width, depth);
   }
 }

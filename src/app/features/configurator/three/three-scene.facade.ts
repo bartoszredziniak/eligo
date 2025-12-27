@@ -148,38 +148,6 @@ export class ThreeSceneFacade {
     }
   }
 
-  resetCamera(): void {
-    if (this.controls && this.camera) {
-      const target = this.controls.target;
-      
-      // Reset to isometric angle
-      this.camera.position.set(target.x + 500, 500, target.z + 500);
-      this.camera.lookAt(target.x, 0, target.z);
-      this.camera.zoom = 1;
-      this.camera.updateProjectionMatrix();
-      
-      this.controls.update();
-    }
-  }
-
-  /**
-   * Reset zoom and center view on the drawer
-   */
-  resetCameraAndCenter(): void {
-    if (this.controls && this.camera && this.drawerWidth && this.drawerDepth) {
-      const centerX = this.drawerWidth / 2;
-      const centerZ = this.drawerDepth / 2;
-      
-      this.controls.target.set(centerX, 0, centerZ);
-      this.camera.position.set(centerX + 500, 500, centerZ + 500);
-      this.camera.lookAt(centerX, 0, centerZ);
-      this.camera.zoom = 1;
-      this.camera.updateProjectionMatrix();
-      
-      this.controls.update();
-    }
-  }
-
   zoomIn(): void {
     if (this.camera && this.controls) {
       const step = 1.2;

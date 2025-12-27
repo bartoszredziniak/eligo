@@ -117,16 +117,6 @@ import { TooltipModule } from 'primeng/tooltip';
           pTooltip="Oddal"
           tooltipPosition="left"
         />
-        <p-button
-          icon="pi pi-home"
-          [rounded]="true"
-          severity="secondary"
-          [raised]="true"
-          size="small"
-          (onClick)="resetView()"
-          pTooltip="Wycentruj widok"
-          tooltipPosition="left"
-        />
       </div>
 
       <!-- Feature Dialogs -->
@@ -265,6 +255,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       const selectedId = this.stateService.selectedBoxId();
       const errors = this.drawerService.validationErrors();
       const showLabels = this.showLabels();
+      const gridLayout = this.gridService.gridLayout();
 
       if (this.boxVisualizer) {
         this.boxVisualizer.update(boxes, selectedId, errors, showLabels);
@@ -273,6 +264,9 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       if (this.interactionManager) {
         const oversizedIds = new Set(errors.filter(e => e.type === 'oversized').map(e => e.boxId));
         this.interactionManager.setOversizedBoxes(oversizedIds);
+        // Update boxes and grid layout for constraint validation
+        this.interactionManager.updateBoxes(boxes);
+        this.interactionManager.updateGridLayout(gridLayout);
       }
     });
   }
@@ -384,7 +378,6 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
   protected zoomIn(): void { this.facade?.zoomIn(); }
   protected zoomOut(): void { this.facade?.zoomOut(); }
-  protected resetView(): void { this.facade?.resetCameraAndCenter(); }
 
   private performInitialRender(): void {
     const config = this.drawerService.drawerConfig();
