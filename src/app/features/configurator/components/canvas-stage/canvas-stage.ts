@@ -21,7 +21,7 @@ import { DrawerService } from '../../../../core/services/drawer.service';
 import { ConfiguratorStateService } from '../../../../core/services/configurator-state.service';
 import { GridService } from '../../../../core/services/grid.service';
 import { ThreeFactoryService } from '../../three/services/three-factory.service';
-import { DrawerConfig } from '../../../../core/models/drawer.models';
+import { DrawerConfig, BoxPreset } from '../../../../core/models/drawer.models';
 import { SceneCaptureService } from '../../../../core/services/scene-capture.service';
 
 import { BoxPropertiesForm } from '../forms/box-properties-form/box-properties-form';
@@ -287,15 +287,16 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     this.interactionManager.onPointerUp(event);
   }
 
-  addBox(): void {
+  addBox(preset?: BoxPreset): void {
     this.stateService.startAddingBox();
-    const width = 6;
-    const depth = 6;
+    const width = preset?.width ?? 6;
+    const depth = preset?.depth ?? 6;
+    const name = preset?.label ?? 'Pudełko';
     const { x, y } = this.drawerService.findFirstFreePosition(width, depth) || { x: 0, y: 0 };
 
     this.drawerService.addBox({
       width, depth, height: 50, x, y,
-      color: 'white', name: 'Pudełko',
+      color: 'white', name,
     });
     this.stateService.finishAddingBox();
   }

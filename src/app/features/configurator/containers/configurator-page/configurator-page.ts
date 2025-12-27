@@ -35,7 +35,7 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
       <eligo-header
         header
         [price]="drawerService.totalPrice()"
-        (addBoxClicked)="canvasStage.addBox()"
+        (addBoxClicked)="canvasStage.addBox($event)"
         (helpClicked)="helpVisible.set(true)"
         (restoreClicked)="restoreVisible.set(true)"
       />

@@ -7,7 +7,7 @@ export type MobileTab = 'canvas' | 'elements' | 'summary';
   selector: 'eligo-ui-layout',
   imports: [CommonModule],
   template: `
-    <div class="flex flex-col h-full w-full overflow-hidden bg-gray-50 text-gray-900">
+    <div class="flex flex-col h-full w-full overflow-hidden bg-background text-foreground">
       <!-- Header Slot -->
       <div class="flex-none z-50">
         <ng-content select="[header]" />
@@ -17,20 +17,20 @@ export type MobileTab = 'canvas' | 'elements' | 'summary';
       <div class="flex flex-1 overflow-hidden relative">
         <!-- Col 1: Left Sidebar (Desktop: always visible, Mobile: only on 'elements' tab) -->
         <div
-          class="flex-none border-r border-gray-200 bg-white z-40 overflow-y-auto"
+          class="flex-none border-r border-border bg-card z-40 overflow-y-auto"
           [class]="leftSidebarClasses()"
         >
           <ng-content select="[sidebarLeft]" />
         </div>
 
         <main
-          class="flex-1 relative overflow-hidden bg-gray-100"
+          class="flex-1 relative overflow-hidden bg-muted"
         >
           <ng-content />
 
           <!-- Summary View (Mobile only, on summary tab) -->
           @if (activeTab() === 'summary') {
-            <div class="absolute inset-0 bg-white z-40 md:hidden">
+            <div class="absolute inset-0 bg-background z-40 md:hidden">
               <ng-content select="[summary]" />
             </div>
           }

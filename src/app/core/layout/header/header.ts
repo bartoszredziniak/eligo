@@ -1,35 +1,49 @@
-import { Component, ChangeDetectionStrategy, output, input, signal } from '@angular/core';
-import { NgOptimizedImage, CommonModule } from '@angular/common';
+import { Component, ChangeDetectionStrategy, output, input, signal, inject, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { ButtonModule } from 'primeng/button';
+import { SplitButtonModule } from 'primeng/splitbutton';
+import { MenuItem } from 'primeng/api';
 import { DrawerModule } from 'primeng/drawer';
 import { UiHeader } from '../../../shared/ui/ui-header/ui-header';
 import { TooltipModule } from 'primeng/tooltip';
+import { LogoComponent } from '../../../shared/components/logo/logo.component';
+import { BOX_PRESETS, BoxPreset } from '../../../core/models/drawer.models';
+import { BreakpointObserver } from '@angular/cdk/layout';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { map } from 'rxjs/operators';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'eligo-header',
-  imports: [CommonModule, NgOptimizedImage, ButtonModule, DrawerModule, UiHeader, TooltipModule],
+  imports: [CommonModule, ButtonModule, SplitButtonModule, DrawerModule, UiHeader, TooltipModule, LogoComponent, RouterLink],
   template: `
     <eligo-ui-header>
-      <div start class="flex items-center gap-2">
-        <img ngSrc="/eligo-logo.svg" alt="Eligo" width="120" height="24" priority />
+      <div start class="flex items-center gap-3 select-none cursor-pointer" routerLink="/">
+        <div class="text-primary flex items-center justify-center">
+          <app-logo class="w-9 h-9" [animated]="true" />
+        </div>
+        <span class="font-bold text-2xl tracking-tight text-foreground">Eligo</span>
       </div>
 
       <div end class="flex items-center gap-2">
         <!-- Always Visible Actions -->
-        <p-button
+        <p-splitButton
           icon="pi pi-plus"
-          label="Dodaj pudełko"
+          [label]="addButtonLabel()"
+          [model]="presetItems"
           [rounded]="true"
           size="small"
           severity="primary"
           styleClass="whitespace-nowrap"
-          (onClick)="addBoxClicked.emit()"
+          buttonStyleClass="whitespace-nowrap"
+          appendTo="body"
+          (onClick)="addBoxClicked.emit(undefined)"
         />
 
         <!-- Mobile Price Display -->
         <div class="flex flex-col items-end mr-2 md:hidden">
           <span class="text-[9px] text-surface-500 uppercase tracking-widest font-bold">Suma</span>
-          <span class="text-sm font-bold text-surface-900 leading-none">{{ price() | number: '1.2-2' }} <span class="text-[10px]">PLN</span></span>
+          <span class="text-sm font-bold text-surface-900 leading-none">{{ (price() ?? 0) | number: '1.2-2' }} <span class="text-[10px]">PLN</span></span>
         </div>
 
         <!-- Desktop Buttons Wrapper -->
@@ -103,12 +117,30 @@ import { TooltipModule } from 'primeng/tooltip';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Header {
+  private readonly breakpointObserver = inject(BreakpointObserver);
+  
   price = input.required<number>();
   
-  addBoxClicked = output<void>();
+  addBoxClicked = output<BoxPreset | undefined>();
 
   helpClicked = output<void>();
   restoreClicked = output<void>();
 
   menuVisible = signal(false);
+
+  // Responsive label for the add button
+  private readonly isSmallScreen = toSignal(
+    this.breakpointObserver.observe('(max-width: 768px)').pipe(map(result => result.matches)),
+    { initialValue: false }
+  );
+
+  addButtonLabel = computed(() => this.isSmallScreen() ? 'Dodaj' : 'Dodaj pudełko');
+
+  // Map presets to PrimeNG MenuItems
+  readonly presetItems: MenuItem[] = BOX_PRESETS.map(preset => ({
+    label: `${preset.label} (${preset.width}x${preset.depth})`,
+    command: () => {
+      this.addBoxClicked.emit(preset);
+    }
+  }));
 }

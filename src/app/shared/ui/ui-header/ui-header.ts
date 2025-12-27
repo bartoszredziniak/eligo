@@ -6,7 +6,7 @@ import { ToolbarModule } from 'primeng/toolbar';
   selector: 'eligo-ui-header',
   imports: [CommonModule, ToolbarModule],
   template: `
-    <p-toolbar styleClass="border-none border-b border-gray-200 rounded-none px-4 py-2 bg-white">
+    <p-toolbar styleClass="border-none border-b border-border rounded-none px-4 py-2 bg-background">
       <div class="p-toolbar-group-start">
         <ng-content select="[start]" />
       </div>
