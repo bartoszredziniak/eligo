@@ -16,7 +16,8 @@ import { DrawerService } from '../../../../core/services/drawer.service';
       [(visible)]="visible" 
       [modal]="true" 
       [dismissableMask]="true"
-      [style]="{ width: '40vw' }" 
+      [style]="{ width: '50vw', maxWidth: '500px' }" 
+      [breakpoints]="dialogBreakpoints"
       [draggable]="false" 
       [resizable]="false"
     >
@@ -51,6 +52,8 @@ import { DrawerService } from '../../../../core/services/drawer.service';
 })
 export class RestoreConfigDialogComponent {
   private drawerService = inject(DrawerService);
+  
+  protected readonly dialogBreakpoints = { '960px': '75vw', '640px': '90vw' };
   
   visible = model<boolean>(false);
   configCode = signal('');

@@ -34,6 +34,8 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
       <!-- Header -->
       <eligo-header
         header
+        [price]="drawerService.totalPrice()"
+        (addBoxClicked)="canvasStage.addBox()"
         (helpClicked)="helpVisible.set(true)"
         (restoreClicked)="restoreVisible.set(true)"
       />
@@ -54,19 +56,22 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
       />
 
       <!-- Mobile Footer (compact) -->
-      <eligo-mobile-summary-bar
-        mobileFooter
-        [price]="drawerService.totalPrice()"
-        [weight]="drawerService.totalWeight()"
-        [configCode]="drawerService.configCode()"
-        (generateOrder)="onGenerateOrder()"
-      />
+      <!-- REMOVED from slot, now just a dialog host -->
 
       <!-- Mobile Bottom Navigation -->
       <eligo-mobile-bottom-nav
         bottomNav
         [activeTab]="activeMobileTab()"
         (tabChange)="onMobileTabChange($event)"
+      />
+
+      <!-- Mobile Summary View -->
+      <eligo-mobile-summary-view
+        summary
+        [price]="drawerService.totalPrice()"
+        [weight]="drawerService.totalWeight()"
+        [configCode]="drawerService.configCode()"
+        (generateOrder)="onGenerateOrder()"
       />
     </eligo-ui-layout>
 

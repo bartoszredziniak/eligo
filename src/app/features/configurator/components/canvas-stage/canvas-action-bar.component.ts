@@ -83,6 +83,19 @@ import { ScrollableContainerComponent } from '../../../../shared/components/scro
                 styleClass="whitespace-nowrap"
                 (onClick)="drawerSettingsClicked.emit()"
               />
+
+              <div class="w-px h-6 bg-surface-200 mx-1 shrink-0"></div>
+
+              <p-button
+                label="Sterowanie"
+                icon="pi pi-question-circle"
+                [rounded]="true"
+                [text]="true"
+                size="small"
+                severity="secondary"
+                styleClass="whitespace-nowrap"
+                (onClick)="controlsClicked.emit()"
+              />
             </div>
           </eligo-scrollable-container>
         </div>
@@ -100,4 +113,5 @@ export class CanvasActionBar {
   rotateClicked = output<void>();
   removeClicked = output<void>();
   drawerSettingsClicked = output<void>();
+  controlsClicked = output<void>();
 }

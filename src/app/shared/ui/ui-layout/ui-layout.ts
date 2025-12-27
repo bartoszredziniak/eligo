@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type MobileTab = 'canvas' | 'elements';
+export type MobileTab = 'canvas' | 'elements' | 'summary';
 
 @Component({
   selector: 'eligo-ui-layout',
@@ -27,6 +27,13 @@ export type MobileTab = 'canvas' | 'elements';
           class="flex-1 relative overflow-hidden bg-gray-100"
         >
           <ng-content />
+
+          <!-- Summary View (Mobile only, on summary tab) -->
+          @if (activeTab() === 'summary') {
+            <div class="absolute inset-0 bg-white z-40 md:hidden">
+              <ng-content select="[summary]" />
+            </div>
+          }
 
           <!-- FAB/SpeedDial Slot (Mobile only, on canvas tab) -->
           @if (activeTab() === 'canvas') {

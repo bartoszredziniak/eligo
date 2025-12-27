@@ -45,6 +45,7 @@ export class InteractionManager {
   
   private drawerDimensions = { width: 0, depth: 0 };
   private oversizedBoxIds = new Set<string>();
+  private selectedBoxId: string | null = null;
   
   // Touch/Drag distinction variables
   private pointerDownPos = new THREE.Vector2();
@@ -68,6 +69,10 @@ export class InteractionManager {
 
   setOversizedBoxes(ids: Set<string>): void {
     this.oversizedBoxIds = ids;
+  }
+
+  setSelectedBox(id: string | null): void {
+    this.selectedBoxId = id;
   }
 
   updateBoxes(boxes: Box[]): void {
@@ -108,7 +113,8 @@ export class InteractionManager {
         return;
       }
 
-      if (!this.oversizedBoxIds.has(boxId)) {
+      // Only allow dragging if the box is ALREADY selected and not oversized
+      if (boxId === this.selectedBoxId && !this.oversizedBoxIds.has(boxId)) {
         this.startDrag(boxId, boxObject, intersectionPoint);
       }
     }

@@ -26,7 +26,6 @@ import { SceneCaptureService } from '../../../../core/services/scene-capture.ser
 
 import { BoxPropertiesForm } from '../forms/box-properties-form/box-properties-form';
 import { DrawerPropertiesForm } from '../forms/drawer-properties-form/drawer-properties-form';
-import { CanvasToolbar } from './canvas-toolbar.component';
 import { CanvasActionBar } from './canvas-action-bar.component';
 import { CanvasControlsHelp } from './canvas-controls-help.component';
 
@@ -43,7 +42,6 @@ import { TooltipModule } from 'primeng/tooltip';
     TooltipModule,
     BoxPropertiesForm,
     DrawerPropertiesForm,
-    CanvasToolbar,
     CanvasActionBar,
     CanvasControlsHelp,
   ],
@@ -58,16 +56,6 @@ import { TooltipModule } from 'primeng/tooltip';
         (pointerup)="onPointerUp($event)"
         (pointerleave)="onPointerUp($event)"
       ></div>
-
-      <!-- Top Toolbar Layer -->
-      <div class="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-        <eligo-canvas-toolbar
-          [showLabels]="showLabels()"
-          (addBoxClicked)="addBox()"
-          (toggleLabelsClicked)="toggleLabels()"
-          (helpClicked)="controlsHelpVisible.set(true)"
-        />
-      </div>
 
       <!-- Bottom Action Bar Layer -->
       <div class="absolute bottom-4 md:bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-auto max-w-[90vw]">
@@ -92,6 +80,7 @@ import { TooltipModule } from 'primeng/tooltip';
           (rotateClicked)="rotateSelected()"
           (removeClicked)="removeSelected()"
           (drawerSettingsClicked)="drawerDialogVisible.set(true)"
+          (controlsClicked)="controlsHelpVisible.set(true)"
         />
       </div>
 
@@ -213,11 +202,10 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   private resizeObserver!: ResizeObserver;
 
   // UI State
-  protected readonly showLabels = signal<boolean>(true);
   protected readonly colorDialogVisible = signal<boolean>(false);
   protected readonly settingsDialogVisible = signal<boolean>(false);
   protected readonly drawerDialogVisible = signal<boolean>(false);
-  protected readonly controlsHelpVisible = signal<boolean>(false);
+  readonly controlsHelpVisible = signal<boolean>(false);
 
   // Computed
   protected readonly selectedBox = computed(() => {
@@ -254,16 +242,16 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       const boxes = this.drawerService.boxes();
       const selectedId = this.stateService.selectedBoxId();
       const errors = this.drawerService.validationErrors();
-      const showLabels = this.showLabels();
       const gridLayout = this.gridService.gridLayout();
 
       if (this.boxVisualizer) {
-        this.boxVisualizer.update(boxes, selectedId, errors, showLabels);
+        this.boxVisualizer.update(boxes, selectedId, errors);
       }
 
       if (this.interactionManager) {
         const oversizedIds = new Set(errors.filter(e => e.type === 'oversized').map(e => e.boxId));
         this.interactionManager.setOversizedBoxes(oversizedIds);
+        this.interactionManager.setSelectedBox(selectedId);
         // Update boxes and grid layout for constraint validation
         this.interactionManager.updateBoxes(boxes);
         this.interactionManager.updateGridLayout(gridLayout);
@@ -297,10 +285,6 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
   onPointerUp(event: PointerEvent): void {
     this.interactionManager.onPointerUp(event);
-  }
-
-  toggleLabels(): void {
-    this.showLabels.update(v => !v);
   }
 
   addBox(): void {
@@ -383,7 +367,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     const config = this.drawerService.drawerConfig();
     this.gridService.updateDrawerDimensions(config.width, config.depth);
     this.drawerVisualizer.update(config);
-    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId(), this.drawerService.validationErrors(), this.showLabels());
+    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId(), this.drawerService.validationErrors());
     this.updateControlsForConfig(config);
   }
 
