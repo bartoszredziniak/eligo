@@ -1,7 +1,7 @@
 import { Component, ChangeDetectionStrategy, input, output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-export type MobileTab = 'canvas' | 'elements';
+export type MobileTab = 'canvas' | 'elements' | 'summary';
 
 @Component({
   selector: 'eligo-mobile-bottom-nav',
@@ -10,21 +10,38 @@ export type MobileTab = 'canvas' | 'elements';
     <nav class="bg-white border-t border-gray-200 md:hidden z-50 safe-area-bottom">
       <div class="flex justify-around items-center h-14">
         <button
+          (click)="menuClicked.emit()"
+          class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[60px] text-gray-500"
+        >
+          <i class="pi pi-bars text-xl mb-0.5"></i>
+          <span class="text-[10px] font-medium">Menu</span>
+        </button>
+
+        <button
           (click)="tabChange.emit('canvas')"
-          class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[80px]"
+          class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[60px]"
           [class]="activeTab() === 'canvas' ? 'text-primary-600' : 'text-gray-500'"
         >
           <i class="pi pi-box text-xl mb-0.5"></i>
-          <span class="text-xs font-medium">Widok 3D</span>
+          <span class="text-[10px] font-medium">Widok 3D</span>
         </button>
         
         <button
           (click)="tabChange.emit('elements')"
-          class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[80px]"
+          class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[60px]"
           [class]="activeTab() === 'elements' ? 'text-primary-600' : 'text-gray-500'"
         >
           <i class="pi pi-list text-xl mb-0.5"></i>
-          <span class="text-xs font-medium">Elementy</span>
+          <span class="text-[10px] font-medium">Elementy</span>
+        </button>
+
+        <button
+          (click)="tabChange.emit('summary')"
+          class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[60px]"
+          [class]="activeTab() === 'summary' ? 'text-primary-600' : 'text-gray-500'"
+        >
+          <i class="pi pi-receipt text-xl mb-0.5"></i>
+          <span class="text-[10px] font-medium">Podsumowanie</span>
         </button>
       </div>
     </nav>
@@ -42,4 +59,5 @@ export type MobileTab = 'canvas' | 'elements';
 export class MobileBottomNav {
   activeTab = input.required<MobileTab>();
   tabChange = output<MobileTab>();
+  menuClicked = output<void>();
 }

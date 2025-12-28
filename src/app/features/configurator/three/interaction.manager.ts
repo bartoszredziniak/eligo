@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { Subject } from 'rxjs';
 import { GridService } from '../../../core/services/grid.service';
 import { HandleSide, USER_DATA_KEYS } from './constants';
+import { Box } from '../../../core/models/drawer.models';
+import { GridLayout } from '../../../core/models/grid.models';
 
 export class InteractionManager {
   private raycaster = new THREE.Raycaster();
@@ -43,10 +45,17 @@ export class InteractionManager {
   
   private drawerDimensions = { width: 0, depth: 0 };
   private oversizedBoxIds = new Set<string>();
+  private selectedBoxId: string | null = null;
   
   // Touch/Drag distinction variables
   private pointerDownPos = new THREE.Vector2();
   private isPointerDown = false;
+
+  // Constraint validation state
+  private boxes: Box[] = [];
+  private gridLayout: GridLayout = { gridUnitsWidth: 0, gridUnitsDepth: 0, offsetX: 0, offsetY: 0, totalWidthMm: 0, totalDepthMm: 0 };
+  private lastValidDragPosition: { x: number; y: number } | null = null;
+  private lastValidResize: { width: number; depth: number; x: number; y: number } | null = null;
 
   constructor(
     private readonly camera: THREE.Camera,
@@ -60,6 +69,18 @@ export class InteractionManager {
 
   setOversizedBoxes(ids: Set<string>): void {
     this.oversizedBoxIds = ids;
+  }
+
+  setSelectedBox(id: string | null): void {
+    this.selectedBoxId = id;
+  }
+
+  updateBoxes(boxes: Box[]): void {
+    this.boxes = boxes;
+  }
+
+  updateGridLayout(layout: GridLayout): void {
+    this.gridLayout = layout;
   }
 
   onPointerDown(event: PointerEvent, rect: DOMRect): void {
@@ -83,16 +104,24 @@ export class InteractionManager {
     }
 
     // 2. Check for Boxes
-    const { boxId, boxObject, intersectionPoint } = this.findBoxByRaycast();
+    const hits = this.getIntersectedBoxes();
 
-    if (boxId && boxObject && intersectionPoint) {
+    if (hits.length > 0) {
+      // If the currently selected box is one of the hits, prioritize it for dragging/context menu
+      // continuously allowing interaction with the selected item even if obscured.
+      const selectedHit = hits.find(h => h.boxId === this.selectedBoxId);
+      const target = selectedHit || hits[0];
+      
+      const { boxId, boxObject, intersectionPoint } = target;
+
       if (event.button === 2) {
         event.preventDefault();
         this._boxContextMenu.next({ boxId, event });
         return;
       }
 
-      if (!this.oversizedBoxIds.has(boxId)) {
+      // Only allow dragging if the box is ALREADY selected and not oversized
+      if (boxId === this.selectedBoxId && !this.oversizedBoxIds.has(boxId)) {
         this.startDrag(boxId, boxObject, intersectionPoint);
       }
     }
@@ -131,13 +160,21 @@ export class InteractionManager {
         const mesh = this.findMeshById(this.draggedBoxId);
         if (!mesh) return;
 
+        const currentBox = this.boxes.find(b => b.id === this.draggedBoxId);
+        if (!currentBox) return;
+
         const clampedPosition = this.calculateSnappedPosition(target, mesh);
 
-        this._boxDrag.next({
-            id: this.draggedBoxId,
-            x: clampedPosition.x,
-            y: clampedPosition.y,
-        });
+        // Validate that the new position is valid (within bounds and no collisions)
+        if (this.isValidPosition(this.draggedBoxId, clampedPosition.x, clampedPosition.y, currentBox.width, currentBox.depth)) {
+            this.lastValidDragPosition = { x: clampedPosition.x, y: clampedPosition.y };
+            this._boxDrag.next({
+                id: this.draggedBoxId,
+                x: clampedPosition.x,
+                y: clampedPosition.y,
+            });
+        }
+        // If invalid, don't emit - box stays at last valid position
     }
   }
 
@@ -164,13 +201,22 @@ export class InteractionManager {
     
     if (isClick) {
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        // Important: Ignore handles for selection click? Or re-select box if handle clicked?
-        // Let's just select the box.
-        const { boxId } = this.findBoxByRaycast();
         
-        this._boxSelected.next(boxId); 
-        if (boxId) {
-             this._boxClicked.next(boxId);
+        const hits = this.getIntersectedBoxes();
+        
+        if (hits.length > 0) {
+            const hitIds = hits.map(h => h.boxId);
+            const currentIndex = hitIds.indexOf(this.selectedBoxId || '');
+            
+            // Cycle selection: Next box in the hit list, or first if none/last selected
+            const nextIndex = (currentIndex + 1) % hitIds.length;
+            const nextId = hitIds[nextIndex];
+
+            this._boxSelected.next(nextId);
+            this._boxClicked.next(nextId);
+        } else {
+            // Click on empty space
+            this._boxSelected.next(null);
         }
     }
   }
@@ -202,29 +248,36 @@ export class InteractionManager {
     };
   }
 
-  private findBoxByRaycast(): {
-    boxId: string | null;
-    boxObject: THREE.Object3D | null;
-    intersectionPoint: THREE.Vector3 | null;
-  } {
+  private getIntersectedBoxes(): {
+    boxId: string;
+    boxObject: THREE.Object3D;
+    intersectionPoint: THREE.Vector3;
+  }[] {
     const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+    const results: { boxId: string; boxObject: THREE.Object3D; intersectionPoint: THREE.Vector3 }[] = [];
+    const seenIds = new Set<string>();
 
     for (const intersect of intersects) {
       let object: THREE.Object3D | null = intersect.object;
       
       while (object) {
-        if (object.userData?.[USER_DATA_KEYS.BOX_ID]) {
-          return {
-            boxId: object.userData[USER_DATA_KEYS.BOX_ID],
-            boxObject: object,
-            intersectionPoint: intersect.point,
-          };
+        const id = object.userData?.[USER_DATA_KEYS.BOX_ID];
+        if (id) {
+          if (!seenIds.has(id)) {
+            seenIds.add(id);
+            results.push({
+              boxId: id,
+              boxObject: object,
+              intersectionPoint: intersect.point,
+            });
+          }
+          break;
         }
         object = object.parent;
       }
     }
 
-    return { boxId: null, boxObject: null, intersectionPoint: null };
+    return results;
   }
 
   private findMeshById(id: string): THREE.Object3D | null {
@@ -323,13 +376,29 @@ export class InteractionManager {
           newZ = bottomEdge - newDepth / 2;
       }
       
-      this._boxResize.next({
-          id: this.resizingBoxId!,
-          width: this.gridService.mmToGridUnits(newWidth),
-          depth: this.gridService.mmToGridUnits(newDepth),
-          x: this.gridService.mmToGridUnits(newX - newWidth / 2),
-          y: this.gridService.mmToGridUnits(newZ - newDepth / 2)
-      });
+      // Convert to grid units for validation
+      const newWidthGridUnits = this.gridService.mmToGridUnits(newWidth);
+      const newDepthGridUnits = this.gridService.mmToGridUnits(newDepth);
+      const newXGridUnits = this.gridService.mmToGridUnits(newX - newWidth / 2);
+      const newYGridUnits = this.gridService.mmToGridUnits(newZ - newDepth / 2);
+      
+      // Validate that the new size and position are valid
+      if (this.isValidPosition(this.resizingBoxId!, newXGridUnits, newYGridUnits, newWidthGridUnits, newDepthGridUnits)) {
+          this.lastValidResize = { 
+              width: newWidthGridUnits, 
+              depth: newDepthGridUnits, 
+              x: newXGridUnits, 
+              y: newYGridUnits 
+          };
+          this._boxResize.next({
+              id: this.resizingBoxId!,
+              width: newWidthGridUnits,
+              depth: newDepthGridUnits,
+              x: newXGridUnits,
+              y: newYGridUnits
+          });
+      }
+      // If invalid, don't emit - box stays at last valid size/position
   }
 
   private startDrag(
@@ -370,5 +439,25 @@ export class InteractionManager {
   private updateMouse(event: PointerEvent, rect: DOMRect): void {
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+  }
+
+  /**
+   * Check if a box at given position with given size is within drawer bounds
+   */
+  private isWithinBounds(x: number, y: number, width: number, depth: number): boolean {
+    return (
+      x >= 0 &&
+      y >= 0 &&
+      x + width <= this.gridLayout.gridUnitsWidth &&
+      y + depth <= this.gridLayout.gridUnitsDepth
+    );
+  }
+
+  /**
+   * Validate if a position is valid (within bounds)
+   * Collisions are allowed (they will be flagged by validators)
+   */
+  private isValidPosition(boxId: string, x: number, y: number, width: number, depth: number): boolean {
+    return this.isWithinBounds(x, y, width, depth);
   }
 }

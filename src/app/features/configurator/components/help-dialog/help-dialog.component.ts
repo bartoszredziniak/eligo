@@ -12,7 +12,8 @@ import { ButtonModule } from 'primeng/button';
       [(visible)]="visible" 
       [modal]="true" 
       [dismissableMask]="true"
-      [style]="{ width: '50vw' }" 
+      [style]="{ width: '50vw', maxWidth: '600px' }" 
+      [breakpoints]="dialogBreakpoints"
       [draggable]="false" 
       [resizable]="false"
     >
@@ -30,7 +31,10 @@ import { ButtonModule } from 'primeng/button';
           <ol class="list-decimal list-inside space-y-2 text-gray-700">
             <li>Zaprojektuj swój wkład w tym konfiguratorze.</li>
             <li>
-              Pamiętaj, że możesz <strong>swobodnie przesuwać</strong> oraz <strong>zmieniać wymiary</strong> pudełek (chwytając za kropki na krawędziach).
+              Pamiętaj, że aby <strong>przesunąć</strong> pudełko, musisz je najpierw zaznaczyć, a następnie przeciągnąć klikając lub dotykając palcem.
+            </li>
+            <li>
+              Możesz <strong>zmieniać wymiary</strong> pudełek chwytając za niebieskie punkty na ich krawędziach.
             </li>
             <li>
               Zwróć uwagę na <strong>Kod Konfiguracji</strong> widoczny na dole ekranu. Będzie on potrzebny do realizacji zamówienia.
@@ -63,5 +67,6 @@ import { ButtonModule } from 'primeng/button';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class HelpDialogComponent {
+  protected readonly dialogBreakpoints = { '960px': '75vw', '640px': '90vw' };
   visible = model<boolean>(false);
 }

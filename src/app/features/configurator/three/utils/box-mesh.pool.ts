@@ -5,6 +5,8 @@ import { ThreeFactoryService } from '../services/three-factory.service';
 import { GridService } from '../../../../core/services/grid.service';
 import { HandleSide, USER_DATA_KEYS } from '../constants';
 
+const LABEL_MESH_NAME = 'label';
+
 export class BoxMeshPool {
   private available: THREE.Mesh[] = [];
   private inUse: Map<string, THREE.Mesh> = new Map<string, THREE.Mesh>();
@@ -15,11 +17,11 @@ export class BoxMeshPool {
     private readonly gridService: GridService
   ) {}
 
-  updateBoxes(boxes: Box[], selectedId: string | null, errors: BoxValidationError[], showLabels = true): void {
+  updateBoxes(boxes: Box[], selectedId: string | null, errors: BoxValidationError[], is2D: boolean): void {
     const newIds = new Set(boxes.map((b) => b.id));
 
     this.removeUnusedBoxes(newIds);
-    this.createOrUpdateBoxes(boxes, selectedId, errors, showLabels);
+    this.createOrUpdateBoxes(boxes, selectedId, errors, is2D);
   }
 
   dispose(): void {
@@ -37,7 +39,7 @@ export class BoxMeshPool {
     }
   }
 
-  private createOrUpdateBoxes(boxes: Box[], selectedId: string | null, errors: BoxValidationError[], showLabels: boolean): void {
+  private createOrUpdateBoxes(boxes: Box[], selectedId: string | null, errors: BoxValidationError[], is2D: boolean): void {
     for (const box of boxes) {
       let mesh = this.inUse.get(box.id);
       const isSelected = box.id === selectedId;
@@ -49,7 +51,7 @@ export class BoxMeshPool {
         this.scene.add(mesh);
         mesh.userData[USER_DATA_KEYS.BOX_ID] = box.id;
         // Force full update for new mesh
-        this.updateMesh(mesh, box, isSelected, error, showLabels);
+        this.updateMesh(mesh, box, isSelected, error, is2D);
       } else {
         // Check if full update is needed
         const coords = this.gridService.convertBoxToMm(box);
@@ -68,19 +70,17 @@ export class BoxMeshPool {
            const group = mesh as unknown as THREE.Group;
            group.position.set(coords.x + coords.width / 2, 0.2, coords.y + coords.depth / 2);
            
-           // Check if name changed for label update OR label visibility changed
+           // Check if name changed for label update
            const prevName = mesh.userData['boxName'];
-           const prevShowLabels = mesh.userData['showLabels'];
            
-           if (prevName !== box.name || prevShowLabels !== showLabels) {
-             this.updateLabel(mesh as unknown as THREE.Group, box.name, coords.width, coords.depth, showLabels);
+           if (prevName !== box.name) {
+             this.updateLabel(mesh as unknown as THREE.Group, box.name, coords.width, coords.depth);
              mesh.userData['boxName'] = box.name;
-             mesh.userData['showLabels'] = showLabels;
            }
 
-           this.updateVisualState(mesh, coords.width, coords.height, coords.depth, isSelected, error);
+           this.updateMesh(mesh, box, isSelected, error, is2D); // Re-run update even if mostly same to check label visibility
         } else {
-           this.updateMesh(mesh, box, isSelected, error, showLabels);
+           this.updateMesh(mesh, box, isSelected, error, is2D);
         }
       }
     }
@@ -103,7 +103,7 @@ export class BoxMeshPool {
   }
 
 
-  private updateMesh(mesh: THREE.Mesh, box: Box, isSelected: boolean, error: BoxValidationError | undefined, showLabels: boolean): void {
+  private updateMesh(mesh: THREE.Mesh, box: Box, isSelected: boolean, error: BoxValidationError | undefined, is2D: boolean): void {
     const group = mesh as unknown as THREE.Group;
 
     const coords = this.gridService.convertBoxToMm(box);
@@ -111,7 +111,6 @@ export class BoxMeshPool {
     const prevDepth = group.userData[USER_DATA_KEYS.DEPTH];
     const prevName = group.userData['boxName'];
     const prevColor = group.userData['boxColor'];
-    const prevShowLabels = group.userData['showLabels'];
 
     const dimensionsChanged = 
       Math.abs(prevWidth - coords.width) > 0.01 || 
@@ -119,16 +118,20 @@ export class BoxMeshPool {
       Math.abs((group.userData['height'] || 0) - coords.height) > 0.01;
     const colorChanged = prevColor !== box.color;
     const nameChanged = prevName !== box.name;
-    const showLabelsChanged = prevShowLabels !== showLabels;
 
     if (dimensionsChanged || colorChanged) {
         this.disposeGeometries(group.children.filter((c) => c.name !== USER_DATA_KEYS.HIGHLIGHT));
         group.clear();
 
-        const newGroup = this.factory.createHollowBoxGroup(coords.width, coords.height, coords.depth, box.color);
+        // Apply a small visual gap to prevent z-fighting/overlapping artifacts
+        const VISUAL_GAP = 0.5;
+        const visualWidth = Math.max(1, coords.width - VISUAL_GAP);
+        const visualDepth = Math.max(1, coords.depth - VISUAL_GAP);
+
+        const newGroup = this.factory.createHollowBoxGroup(visualWidth, coords.height, visualDepth, box.color);
         this.transferChildren(newGroup, group);
 
-        // Position using mm coordinates, lift slightly to avoid z-fighting with drawer floor
+        // Position using logical mm coordinates to keep center correct
         group.position.set(coords.x + coords.width / 2, 0.2, coords.y + coords.depth / 2);
 
         group.userData[USER_DATA_KEYS.BOX_ID] = box.id;
@@ -141,19 +144,24 @@ export class BoxMeshPool {
         group.position.set(coords.x + coords.width / 2, 0, coords.y + coords.depth / 2);
     }
 
-    // Handle Label - recreate when name, dimensions, color, or visibility changes
-    if (nameChanged || dimensionsChanged || colorChanged || showLabelsChanged) { 
-        this.updateLabel(group, box.name, coords.width, coords.depth, showLabels);
+    // Handle Label - recreate when name, dimensions, color changes
+    if (nameChanged || dimensionsChanged || colorChanged) { 
+        this.updateLabel(group, box.name, coords.width, coords.depth);
         group.userData['boxName'] = box.name;
-        group.userData['showLabels'] = showLabels;
+    }
+
+    // Update Label Visibility
+    const label = group.children.find(c => c.name === LABEL_MESH_NAME);
+    if (label) {
+        label.visible = is2D;
     }
 
     this.updateVisualState(mesh, coords.width, coords.height, coords.depth, isSelected, error);
   }
 
-  private updateLabel(group: THREE.Group, text: string, width: number, depth: number, showLabels: boolean): void {
+  private updateLabel(group: THREE.Group, text: string, width: number, depth: number): void {
     // Remove existing label
-    const existingLabel = group.children.find((c) => c.name === 'label');
+    const existingLabel = group.children.find((c) => c.name === LABEL_MESH_NAME);
     if (existingLabel) {
       group.remove(existingLabel);
       if (existingLabel.userData['dispose']) {
@@ -168,10 +176,6 @@ export class BoxMeshPool {
           if (mat.map) mat.map.dispose();
         }
       }
-    }
-
-    if (!showLabels) {
-      return;
     }
 
     try {
@@ -205,7 +209,7 @@ export class BoxMeshPool {
     const group = mesh as unknown as THREE.Group;
     group.children.forEach((child) => {
       // Skip label and highlight from material override
-      if (child.name === USER_DATA_KEYS.HIGHLIGHT || child.name === 'label') return;
+      if (child.name === USER_DATA_KEYS.HIGHLIGHT || child.name === LABEL_MESH_NAME) return;
       
       const meshChild = child as THREE.Mesh;
       if (error) {

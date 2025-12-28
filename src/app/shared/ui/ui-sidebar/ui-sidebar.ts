@@ -5,7 +5,7 @@ import { CommonModule } from '@angular/common';
   selector: 'eligo-ui-sidebar',
   imports: [CommonModule],
   template: `
-    <div class="flex flex-col h-full  w-full bg-white">
+    <div class="flex flex-col h-full  w-full bg-card">
       <div class="flex-none">
         <ng-content select="[header]" />
       </div>

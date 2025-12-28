@@ -35,11 +35,11 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
                 <!-- Color Indicator (Left side for better visibility) -->
                 @if (item.type === 'box') {
                   <div
-                    class="w-5 h-5 rounded-full border border-surface-200 shrink-0"
+                    class="w-5 h-5 rounded-full border border-border shrink-0"
                     [style.background-color]="getBoxColorHex(item.color)"
                   ></div>
                 } @else {
-                  <i class="pi pi-inbox text-surface-400 text-sm"></i>
+                  <i class="pi pi-inbox text-muted-foreground text-sm"></i>
                 }
 
                 <!-- Name / Input -->
@@ -75,11 +75,11 @@ import { EmptyState } from '../../../shared/ui/empty-state/empty-state';
                 @if (item.type === 'box' && getBoxError(item.id); as error) {
                   <div class="ml-auto flex items-center">
                     @if (error.type === 'collision') {
-                      <i class="pi pi-exclamation-triangle text-red-500 text-xs" title="Kolizja"></i>
+                      <i class="pi pi-exclamation-triangle text-destructive text-xs" title="Kolizja"></i>
                     } @else if (error.type === 'boundary') {
-                      <i class="pi pi-arrows-alt text-orange-500 text-xs" title="Wystaje poza szufladę"></i>
+                      <i class="pi pi-arrows-alt text-amber-500 text-xs" title="Wystaje poza szufladę"></i>
                     } @else if (error.type === 'oversized') {
-                      <i class="pi pi-ban text-red-500 text-xs" title="Za duże"></i>
+                      <i class="pi pi-ban text-destructive text-xs" title="Za duże"></i>
                     }
                   </div>
                 }

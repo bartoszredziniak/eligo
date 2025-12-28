@@ -13,6 +13,7 @@ import { HelpDialogComponent } from '../../components/help-dialog/help-dialog.co
 import { RestoreConfigDialogComponent } from '../../components/restore-config-dialog/restore-config-dialog.component';
 import { MobileBottomNav } from '../../../../shared/ui/mobile-bottom-nav/mobile-bottom-nav';
 import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mobile-summary-bar';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'eligo-configurator-page',
@@ -34,8 +35,11 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
       <!-- Header -->
       <eligo-header
         header
+        [price]="drawerService.totalPrice()"
+        (addBoxClicked)="canvasStage.addBox($event)"
         (helpClicked)="helpVisible.set(true)"
         (restoreClicked)="restoreVisible.set(true)"
+        (startOverClicked)="onStartOver()"
       />
 
       <!-- Left Sidebar -->
@@ -54,19 +58,23 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
       />
 
       <!-- Mobile Footer (compact) -->
-      <eligo-mobile-summary-bar
-        mobileFooter
-        [price]="drawerService.totalPrice()"
-        [weight]="drawerService.totalWeight()"
-        [configCode]="drawerService.configCode()"
-        (generateOrder)="onGenerateOrder()"
-      />
+      <!-- REMOVED from slot, now just a dialog host -->
 
       <!-- Mobile Bottom Navigation -->
       <eligo-mobile-bottom-nav
         bottomNav
         [activeTab]="activeMobileTab()"
         (tabChange)="onMobileTabChange($event)"
+        (menuClicked)="onStartOver()"
+      />
+
+      <!-- Mobile Summary View -->
+      <eligo-mobile-summary-view
+        summary
+        [price]="drawerService.totalPrice()"
+        [weight]="drawerService.totalWeight()"
+        [configCode]="drawerService.configCode()"
+        (generateOrder)="onGenerateOrder()"
       />
     </eligo-ui-layout>
 
@@ -91,6 +99,13 @@ export class ConfiguratorPage {
 
   onMobileTabChange(tab: MobileTab) {
     this.activeMobileTab.set(tab);
+  }
+
+  private router = inject(Router);
+
+  onStartOver() {
+    this.drawerService.clearBoxes();
+    this.router.navigate(['/']);
   }
 
   async onGenerateOrder(): Promise<void> {

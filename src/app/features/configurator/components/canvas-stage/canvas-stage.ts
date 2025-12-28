@@ -10,6 +10,7 @@ import {
   PLATFORM_ID,
   signal,
   computed,
+  untracked,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
@@ -21,18 +22,19 @@ import { DrawerService } from '../../../../core/services/drawer.service';
 import { ConfiguratorStateService } from '../../../../core/services/configurator-state.service';
 import { GridService } from '../../../../core/services/grid.service';
 import { ThreeFactoryService } from '../../three/services/three-factory.service';
-import { DrawerConfig } from '../../../../core/models/drawer.models';
+import { DrawerConfig, BoxPreset } from '../../../../core/models/drawer.models';
 import { SceneCaptureService } from '../../../../core/services/scene-capture.service';
 
 import { BoxPropertiesForm } from '../forms/box-properties-form/box-properties-form';
 import { DrawerPropertiesForm } from '../forms/drawer-properties-form/drawer-properties-form';
-import { CanvasToolbar } from './canvas-toolbar.component';
 import { CanvasActionBar } from './canvas-action-bar.component';
 import { CanvasControlsHelp } from './canvas-controls-help.component';
 
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TooltipModule } from 'primeng/tooltip';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'eligo-canvas-stage',
@@ -43,9 +45,10 @@ import { TooltipModule } from 'primeng/tooltip';
     TooltipModule,
     BoxPropertiesForm,
     DrawerPropertiesForm,
-    CanvasToolbar,
     CanvasActionBar,
     CanvasControlsHelp,
+    SelectButtonModule,
+    FormsModule,
   ],
   template: `
     <div class="relative w-full h-full overflow-hidden">
@@ -58,16 +61,6 @@ import { TooltipModule } from 'primeng/tooltip';
         (pointerup)="onPointerUp($event)"
         (pointerleave)="onPointerUp($event)"
       ></div>
-
-      <!-- Top Toolbar Layer -->
-      <div class="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-        <eligo-canvas-toolbar
-          [showLabels]="showLabels()"
-          (addBoxClicked)="addBox()"
-          (toggleLabelsClicked)="toggleLabels()"
-          (helpClicked)="controlsHelpVisible.set(true)"
-        />
-      </div>
 
       <!-- Bottom Action Bar Layer -->
       <div class="absolute bottom-4 md:bottom-3 left-1/2 -translate-x-1/2 z-20 pointer-events-auto max-w-[90vw]">
@@ -92,6 +85,7 @@ import { TooltipModule } from 'primeng/tooltip';
           (rotateClicked)="rotateSelected()"
           (removeClicked)="removeSelected()"
           (drawerSettingsClicked)="drawerDialogVisible.set(true)"
+          (controlsClicked)="controlsHelpVisible.set(true)"
         />
       </div>
 
@@ -117,16 +111,20 @@ import { TooltipModule } from 'primeng/tooltip';
           pTooltip="Oddal"
           tooltipPosition="left"
         />
-        <p-button
-          icon="pi pi-home"
-          [rounded]="true"
-          severity="secondary"
-          [raised]="true"
-          size="small"
-          (onClick)="resetView()"
-          pTooltip="Wycentruj widok"
-          tooltipPosition="left"
-        />
+      </div>
+
+      <!-- View Toggle -->
+      <div class="absolute top-4 right-4 z-20 pointer-events-auto">
+        <div class="bg-surface-0/90 backdrop-blur-sm shadow-sm rounded-md">
+          <p-selectButton
+            [options]="viewOptions"
+            [ngModel]="is2DMode()"
+            (ngModelChange)="setMode($event)"
+            optionLabel="label"
+            optionValue="value"
+            styleClass="!border-0"
+          />
+        </div>
       </div>
 
       <!-- Feature Dialogs -->
@@ -223,11 +221,11 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   private resizeObserver!: ResizeObserver;
 
   // UI State
-  protected readonly showLabels = signal<boolean>(true);
   protected readonly colorDialogVisible = signal<boolean>(false);
   protected readonly settingsDialogVisible = signal<boolean>(false);
   protected readonly drawerDialogVisible = signal<boolean>(false);
-  protected readonly controlsHelpVisible = signal<boolean>(false);
+  readonly controlsHelpVisible = signal<boolean>(false);
+  protected readonly is2DMode = signal<boolean>(true);
 
   // Computed
   protected readonly selectedBox = computed(() => {
@@ -246,6 +244,11 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   });
 
   protected readonly dialogBreakpoints = { '960px': '75vw', '640px': '90vw' };
+  
+  protected readonly viewOptions = [
+    { label: '3D', value: false },
+    { label: '2D', value: true }
+  ];
 
   constructor() {
     effect(() => {
@@ -257,6 +260,8 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       }
       if (this.interactionManager && this.facade) {
         this.updateControlsForConfig(config);
+        const is2D = untracked(() => this.is2DMode());
+        this.facade.setViewMode(is2D ? '2d' : '3d');
       }
     });
 
@@ -264,15 +269,25 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       const boxes = this.drawerService.boxes();
       const selectedId = this.stateService.selectedBoxId();
       const errors = this.drawerService.validationErrors();
-      const showLabels = this.showLabels();
+      const gridLayout = this.gridService.gridLayout();
 
       if (this.boxVisualizer) {
-        this.boxVisualizer.update(boxes, selectedId, errors, showLabels);
+        this.boxVisualizer.update(boxes, selectedId, errors, this.is2DMode());
       }
 
       if (this.interactionManager) {
         const oversizedIds = new Set(errors.filter(e => e.type === 'oversized').map(e => e.boxId));
         this.interactionManager.setOversizedBoxes(oversizedIds);
+        this.interactionManager.setSelectedBox(selectedId);
+        // Update boxes and grid layout for constraint validation
+        this.interactionManager.updateBoxes(boxes);
+        this.interactionManager.updateGridLayout(gridLayout);
+      }
+    });
+    effect(() => {
+      const mode = this.is2DMode() ? '2d' : '3d';
+      if (this.facade) {
+        this.facade.setViewMode(mode);
       }
     });
   }
@@ -305,19 +320,16 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
     this.interactionManager.onPointerUp(event);
   }
 
-  toggleLabels(): void {
-    this.showLabels.update(v => !v);
-  }
-
-  addBox(): void {
+  addBox(preset?: BoxPreset): void {
     this.stateService.startAddingBox();
-    const width = 6;
-    const depth = 6;
+    const width = preset?.width ?? 6;
+    const depth = preset?.depth ?? 6;
+    const name = preset?.label ?? 'Pudełko';
     const { x, y } = this.drawerService.findFirstFreePosition(width, depth) || { x: 0, y: 0 };
 
     this.drawerService.addBox({
       width, depth, height: 50, x, y,
-      color: 'white', name: 'Pudełko',
+      color: 'white', name,
     });
     this.stateService.finishAddingBox();
   }
@@ -384,14 +396,18 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
 
   protected zoomIn(): void { this.facade?.zoomIn(); }
   protected zoomOut(): void { this.facade?.zoomOut(); }
-  protected resetView(): void { this.facade?.resetCameraAndCenter(); }
+
+  protected setMode(is2D: boolean): void {
+    this.is2DMode.set(is2D);
+  }
 
   private performInitialRender(): void {
     const config = this.drawerService.drawerConfig();
     this.gridService.updateDrawerDimensions(config.width, config.depth);
     this.drawerVisualizer.update(config);
-    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId(), this.drawerService.validationErrors(), this.showLabels());
+    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId(), this.drawerService.validationErrors(), this.is2DMode());
     this.updateControlsForConfig(config);
+    this.facade.setViewMode(this.is2DMode() ? '2d' : '3d');
   }
 
   private updateControlsForConfig(config: DrawerConfig): void {

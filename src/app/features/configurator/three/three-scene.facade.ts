@@ -17,6 +17,8 @@ export class ThreeSceneFacade {
 
   constructor(private readonly container: HTMLElement) {}
 
+  private onContextMenu = (e: Event) => e.preventDefault();
+
   init(): void {
     this.initScene();
     this.initCamera();
@@ -71,6 +73,9 @@ export class ThreeSceneFacade {
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows
     
     this.container.appendChild(this.renderer.domElement);
+    
+    // Prevent default context menu to allow Right Click Pan
+    this.renderer.domElement.addEventListener('contextmenu', this.onContextMenu);
   }
 
   private initControls(): void {
@@ -78,25 +83,66 @@ export class ThreeSceneFacade {
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
     
-    // Disable rotation as per user request
-    this.controls.enableRotate = false;
+    this.configureControls2D(); // Default to 2D
     
-    // Map Left Mouse Button to PAN instead of ROTATE
-    // Map Single Finger to PAN on mobile
+    // Zoom limits for Orthographic (Zoom is actually a scale factor)
+    this.controls.minZoom = 0.5;
+    this.controls.maxZoom = 4;
+  }
+
+  setViewMode(mode: '2d' | '3d'): void {
+    if (!this.camera || !this.controls) return;
+
+    // Recenter pivot to drawer center for consistent rotation/panning
+    // If dimensions are not set yet, fallback to 0,0,0 or current target
+    const centerX = this.drawerWidth ? this.drawerWidth / 2 : 0;
+    const centerZ = this.drawerDepth ? this.drawerDepth / 2 : 0;
+    
+    // Update target to center
+    this.controls.target.set(centerX, 0, centerZ);
+
+    if (mode === '2d') {
+      // Top-down view relative to center
+      this.camera.position.set(centerX, 1000, centerZ + 1e-5);
+      this.camera.zoom = 1; 
+      
+      this.configureControls2D();
+    } else {
+      // Isometric view relative to center
+      this.camera.position.set(centerX + 500, 500, centerZ + 500);
+
+      this.configureControls3D();
+    }
+
+    this.camera.lookAt(centerX, 0, centerZ);
+    this.camera.updateProjectionMatrix();
+    this.controls.update();
+  }
+
+  private configureControls2D(): void {
+    this.controls.enableRotate = false;
     this.controls.mouseButtons = {
       LEFT: THREE.MOUSE.PAN,
       MIDDLE: THREE.MOUSE.DOLLY,
       RIGHT: THREE.MOUSE.PAN
     };
-    
     this.controls.touches = {
       ONE: THREE.TOUCH.PAN,
       TWO: THREE.TOUCH.DOLLY_PAN
     };
+  }
 
-    // Zoom limits for Orthographic (Zoom is actually a scale factor)
-    this.controls.minZoom = 0.5;
-    this.controls.maxZoom = 4;
+  private configureControls3D(): void {
+    this.controls.enableRotate = true;
+    this.controls.mouseButtons = {
+      LEFT: THREE.MOUSE.ROTATE,
+      MIDDLE: THREE.MOUSE.DOLLY,
+      RIGHT: THREE.MOUSE.PAN
+    };
+    this.controls.touches = {
+      ONE: THREE.TOUCH.ROTATE,
+      TWO: THREE.TOUCH.DOLLY_PAN
+    };
   }
 
   setControlsTarget(x: number, y: number, z: number): void {
@@ -145,38 +191,6 @@ export class ThreeSceneFacade {
       // Re-position camera to maintain offset from target
       this.camera.position.x = clampedX + 500;
       this.camera.position.z = clampedZ + 500;
-    }
-  }
-
-  resetCamera(): void {
-    if (this.controls && this.camera) {
-      const target = this.controls.target;
-      
-      // Reset to isometric angle
-      this.camera.position.set(target.x + 500, 500, target.z + 500);
-      this.camera.lookAt(target.x, 0, target.z);
-      this.camera.zoom = 1;
-      this.camera.updateProjectionMatrix();
-      
-      this.controls.update();
-    }
-  }
-
-  /**
-   * Reset zoom and center view on the drawer
-   */
-  resetCameraAndCenter(): void {
-    if (this.controls && this.camera && this.drawerWidth && this.drawerDepth) {
-      const centerX = this.drawerWidth / 2;
-      const centerZ = this.drawerDepth / 2;
-      
-      this.controls.target.set(centerX, 0, centerZ);
-      this.camera.position.set(centerX + 500, 500, centerZ + 500);
-      this.camera.lookAt(centerX, 0, centerZ);
-      this.camera.zoom = 1;
-      this.camera.updateProjectionMatrix();
-      
-      this.controls.update();
     }
   }
 
@@ -296,6 +310,7 @@ export class ThreeSceneFacade {
     }
     
     if (this.renderer && this.renderer.domElement) {
+      this.renderer.domElement.removeEventListener('contextmenu', this.onContextMenu);
       this.renderer.domElement.remove();
     }
 
