@@ -10,6 +10,7 @@ import {
   PLATFORM_ID,
   signal,
   computed,
+  untracked,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { CommonModule } from '@angular/common';
@@ -32,6 +33,8 @@ import { CanvasControlsHelp } from './canvas-controls-help.component';
 import { ButtonModule } from 'primeng/button';
 import { DialogModule } from 'primeng/dialog';
 import { TooltipModule } from 'primeng/tooltip';
+import { SelectButtonModule } from 'primeng/selectbutton';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'eligo-canvas-stage',
@@ -44,6 +47,8 @@ import { TooltipModule } from 'primeng/tooltip';
     DrawerPropertiesForm,
     CanvasActionBar,
     CanvasControlsHelp,
+    SelectButtonModule,
+    FormsModule,
   ],
   template: `
     <div class="relative w-full h-full overflow-hidden">
@@ -106,6 +111,20 @@ import { TooltipModule } from 'primeng/tooltip';
           pTooltip="Oddal"
           tooltipPosition="left"
         />
+      </div>
+
+      <!-- View Toggle -->
+      <div class="absolute top-4 right-4 z-20 pointer-events-auto">
+        <div class="bg-surface-0/90 backdrop-blur-sm shadow-sm rounded-md">
+          <p-selectButton
+            [options]="viewOptions"
+            [ngModel]="is2DMode()"
+            (ngModelChange)="setMode($event)"
+            optionLabel="label"
+            optionValue="value"
+            styleClass="!border-0"
+          />
+        </div>
       </div>
 
       <!-- Feature Dialogs -->
@@ -206,6 +225,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   protected readonly settingsDialogVisible = signal<boolean>(false);
   protected readonly drawerDialogVisible = signal<boolean>(false);
   readonly controlsHelpVisible = signal<boolean>(false);
+  protected readonly is2DMode = signal<boolean>(true);
 
   // Computed
   protected readonly selectedBox = computed(() => {
@@ -224,6 +244,11 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   });
 
   protected readonly dialogBreakpoints = { '960px': '75vw', '640px': '90vw' };
+  
+  protected readonly viewOptions = [
+    { label: '3D', value: false },
+    { label: '2D', value: true }
+  ];
 
   constructor() {
     effect(() => {
@@ -235,6 +260,8 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       }
       if (this.interactionManager && this.facade) {
         this.updateControlsForConfig(config);
+        const is2D = untracked(() => this.is2DMode());
+        this.facade.setViewMode(is2D ? '2d' : '3d');
       }
     });
 
@@ -245,7 +272,7 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
       const gridLayout = this.gridService.gridLayout();
 
       if (this.boxVisualizer) {
-        this.boxVisualizer.update(boxes, selectedId, errors);
+        this.boxVisualizer.update(boxes, selectedId, errors, this.is2DMode());
       }
 
       if (this.interactionManager) {
@@ -255,6 +282,12 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
         // Update boxes and grid layout for constraint validation
         this.interactionManager.updateBoxes(boxes);
         this.interactionManager.updateGridLayout(gridLayout);
+      }
+    });
+    effect(() => {
+      const mode = this.is2DMode() ? '2d' : '3d';
+      if (this.facade) {
+        this.facade.setViewMode(mode);
       }
     });
   }
@@ -364,12 +397,17 @@ export class CanvasStage implements AfterViewInit, OnDestroy {
   protected zoomIn(): void { this.facade?.zoomIn(); }
   protected zoomOut(): void { this.facade?.zoomOut(); }
 
+  protected setMode(is2D: boolean): void {
+    this.is2DMode.set(is2D);
+  }
+
   private performInitialRender(): void {
     const config = this.drawerService.drawerConfig();
     this.gridService.updateDrawerDimensions(config.width, config.depth);
     this.drawerVisualizer.update(config);
-    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId(), this.drawerService.validationErrors());
+    this.boxVisualizer.update(this.drawerService.boxes(), this.stateService.selectedBoxId(), this.drawerService.validationErrors(), this.is2DMode());
     this.updateControlsForConfig(config);
+    this.facade.setViewMode(this.is2DMode() ? '2d' : '3d');
   }
 
   private updateControlsForConfig(config: DrawerConfig): void {

@@ -24,6 +24,8 @@ export const USER_DATA_KEYS = {
   HANDLE_SIDE: 'handleSide',
 } as const;
 
+export const LABEL_MESH_NAME = 'label';
+
 export enum HandleSide {
   TOP = 'top',
   BOTTOM = 'bottom',

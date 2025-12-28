@@ -79,13 +79,14 @@ import { ButtonModule } from 'primeng/button';
 
         <!-- Navigation Section -->
         <div>
-          <h5 class="m-0 mb-3 text-surface-500 font-semibold text-xs uppercase tracking-wider">Nawigacja w 3D</h5>
+          <h5 class="m-0 mb-3 text-surface-500 font-semibold text-xs uppercase tracking-wider">Nawigacja</h5>
           <div class="grid grid-cols-2 gap-4">
             <!-- Mouse -->
             <div>
               <div class="text-xs font-bold text-surface-900 mb-2">Mysz (Desktop)</div>
               <ul class="list-none p-0 m-0 text-xs space-y-2 text-surface-600">
-                <li><strong class="text-surface-900">Przesuwanie widoku:</strong> Przycisk myszy + ruch</li>
+                <li><strong class="text-surface-900">Obracanie (tylko 3D):</strong> Lewy przycisk myszy + ruch</li>
+                <li><strong class="text-surface-900">Przesuwanie:</strong> Prawy przycisk myszy (lub lewy w 2D)</li>
                 <li><strong class="text-surface-900">Zoom:</strong> Rolka myszy</li>
               </ul>
             </div>
@@ -93,7 +94,8 @@ import { ButtonModule } from 'primeng/button';
             <div>
                <div class="text-xs font-bold text-surface-900 mb-2">Dotyk (Mobile)</div>
                <ul class="list-none p-0 m-0 text-xs space-y-2 text-surface-600">
-                <li><strong class="text-surface-900">Przesuwanie widoku:</strong> Ruch palcem</li>
+                <li><strong class="text-surface-900">Obracanie (tylko 3D):</strong> Ruch jednym palcem</li>
+                <li><strong class="text-surface-900">Przesuwanie:</strong> Ruch dwoma palcami (lub jednym w 2D)</li>
                 <li><strong class="text-surface-900">Zoom:</strong> Uszczypnięcie (Pinch)</li>
               </ul>
             </div>

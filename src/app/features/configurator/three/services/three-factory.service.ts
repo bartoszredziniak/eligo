@@ -47,49 +47,63 @@ export class ThreeFactoryService implements OnDestroy {
   createHollowBoxGroup(width: number, height: number, depth: number, color: BoxColor): THREE.Group {
     const group = new THREE.Group();
     const material = this.getBoxMaterial(color);
-    const radius = 4; // Outer corner radius
-    const wallThickness = BOX_WALL_THICKNESS;
-    const floorThickness = wallThickness;
+    
+    // Geometry Constants
+    const RADIUS = 4;
+    const WALL_THICKNESS = BOX_WALL_THICKNESS;
+    const FLOOR_THICKNESS = WALL_THICKNESS;
+    const WALL_BEVEL = 1; // 1mm Bevel on each side. 1mm * 2 < 3mm Wall Thickness (Safe)
+    const FLOOR_BEVEL = 1;
 
     // 1. Create the wall shell (one single piece "O" shape)
-    const wallShape = this.createRoundedRectShape(width, depth, radius);
+    // Bevel adds to the size, so we need to subtract it from the base shape
+    const wallShape = this.createRoundedRectShape(
+      width - 2 * WALL_BEVEL, 
+      depth - 2 * WALL_BEVEL, 
+      RADIUS
+    );
     
     // Create the hole for the inside
+    // Bevel extends material INWARDS for holes, so we need to enlarge the hole shape
     const holePath = this.createRoundedRectShape(
-      width - 2 * wallThickness, 
-      depth - 2 * wallThickness, 
-      Math.max(0, radius - wallThickness)
+      width - 2 * WALL_THICKNESS + 2 * WALL_BEVEL, 
+      depth - 2 * WALL_THICKNESS + 2 * WALL_BEVEL, 
+      Math.max(0, RADIUS - WALL_THICKNESS)
     );
     wallShape.holes.push(holePath);
 
     const wallGeometry = new THREE.ExtrudeGeometry(wallShape, {
-      depth: height - floorThickness,
+      depth: height - FLOOR_THICKNESS,
       bevelEnabled: true,
-      bevelThickness: 1.5,
-      bevelSize: 1.5,
+      bevelThickness: WALL_BEVEL,
+      bevelSize: WALL_BEVEL,
       bevelSegments: 4,
     });
     
     const wallsMesh = new THREE.Mesh(wallGeometry, material);
     wallsMesh.rotation.x = -Math.PI / 2;
-    wallsMesh.position.y = floorThickness; // Start exactly where floor ends
+    wallsMesh.position.y = FLOOR_THICKNESS; // Start exactly where floor ends
     wallsMesh.castShadow = true;
     wallsMesh.receiveShadow = true;
     group.add(wallsMesh);
 
     // 2. Create the floor using ExtrudeGeometry for consistent rounded look
-    const floorShape = this.createRoundedRectShape(width, depth, radius);
+    const floorShape = this.createRoundedRectShape(
+      width - 2 * FLOOR_BEVEL, 
+      depth - 2 * FLOOR_BEVEL, 
+      RADIUS
+    );
     const floorGeometry = new THREE.ExtrudeGeometry(floorShape, {
-      depth: floorThickness,
+      depth: FLOOR_THICKNESS,
       bevelEnabled: true,
-      bevelThickness: 1,
-      bevelSize: 1,
+      bevelThickness: FLOOR_BEVEL,
+      bevelSize: FLOOR_BEVEL,
       bevelSegments: 3,
     });
     
     const floorMesh = new THREE.Mesh(floorGeometry, material);
     floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.y = floorThickness; // Positioned so its top is at y=floorThickness
+    floorMesh.position.y = FLOOR_THICKNESS; // Positioned so its top is at y=floorThickness
     floorMesh.castShadow = true;
     floorMesh.receiveShadow = true;
     group.add(floorMesh);
