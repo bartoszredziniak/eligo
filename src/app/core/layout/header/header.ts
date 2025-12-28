@@ -19,10 +19,7 @@ import { RouterLink } from '@angular/router';
   template: `
     <eligo-ui-header>
       <div start class="flex items-center gap-3 select-none cursor-pointer" routerLink="/">
-        <div class="text-primary flex items-center justify-center">
-          <app-logo class="w-9 h-9" [animated]="true" />
-        </div>
-        <span class="font-bold text-2xl tracking-tight text-foreground">Eligo</span>
+         <app-logo size="medium" />
       </div>
 
       <div end class="flex items-center gap-2">
@@ -43,11 +40,20 @@ import { RouterLink } from '@angular/router';
         <!-- Mobile Price Display -->
         <div class="flex flex-col items-end mr-2 md:hidden">
           <span class="text-[9px] text-surface-500 uppercase tracking-widest font-bold">Suma</span>
-          <span class="text-sm font-bold text-surface-900 leading-none">{{ (price() ?? 0) | number: '1.2-2' }} <span class="text-[10px]">PLN</span></span>
+          <span class="text-sm font-bold text-surface-900 leading-none">{{ (price()) | number: '1.2-2' }} <span class="text-[10px]">PLN</span></span>
         </div>
 
         <!-- Desktop Buttons Wrapper -->
         <div class="hidden md:flex items-center gap-2">
+           <p-button
+            icon="pi pi-refresh"
+            label="Zacznij od nowa"
+            [text]="true"
+            severity="danger"
+            pTooltip="Zresetuj konfigurację"
+            tooltipPosition="bottom"
+            (onClick)="startOverClicked.emit()"
+          />
           <p-button
             icon="pi pi-history"
             label="Wczytaj"
@@ -78,9 +84,9 @@ import { RouterLink } from '@angular/router';
         </div>
 
         <!-- Mobile Side Menu (Drawer) -->
-        <p-drawer 
-          [(visible)]="menuVisible" 
-          position="right" 
+        <p-drawer
+          [(visible)]="menuVisible"
+          position="right"
           [modal]="true"
           [blockScroll]="true"
           styleClass="w-[80vw] md:w-[20rem]"
@@ -90,9 +96,17 @@ import { RouterLink } from '@angular/router';
               <span class="font-bold text-lg">Menu</span>
             </div>
           </ng-template>
-          
+
           <div class="flex flex-col gap-2">
             <p-button
+              icon="pi pi-refresh"
+              label="Zacznij od nowa"
+              [text]="true"
+              severity="danger"
+              styleClass="w-full !justify-start !text-left px-4"
+              (onClick)="startOverClicked.emit(); menuVisible.set(false)"
+            />
+             <p-button
               icon="pi pi-history"
               label="Wczytaj konfigurację"
               [text]="true"
@@ -118,13 +132,14 @@ import { RouterLink } from '@angular/router';
 })
 export class Header {
   private readonly breakpointObserver = inject(BreakpointObserver);
-  
+
   price = input.required<number>();
-  
+
   addBoxClicked = output<BoxPreset | undefined>();
 
   helpClicked = output<void>();
   restoreClicked = output<void>();
+  startOverClicked = output<void>();
 
   menuVisible = signal(false);
 

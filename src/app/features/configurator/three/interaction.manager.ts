@@ -104,9 +104,16 @@ export class InteractionManager {
     }
 
     // 2. Check for Boxes
-    const { boxId, boxObject, intersectionPoint } = this.findBoxByRaycast();
+    const hits = this.getIntersectedBoxes();
 
-    if (boxId && boxObject && intersectionPoint) {
+    if (hits.length > 0) {
+      // If the currently selected box is one of the hits, prioritize it for dragging/context menu
+      // continuously allowing interaction with the selected item even if obscured.
+      const selectedHit = hits.find(h => h.boxId === this.selectedBoxId);
+      const target = selectedHit || hits[0];
+      
+      const { boxId, boxObject, intersectionPoint } = target;
+
       if (event.button === 2) {
         event.preventDefault();
         this._boxContextMenu.next({ boxId, event });
@@ -194,13 +201,22 @@ export class InteractionManager {
     
     if (isClick) {
         this.raycaster.setFromCamera(this.mouse, this.camera);
-        // Important: Ignore handles for selection click? Or re-select box if handle clicked?
-        // Let's just select the box.
-        const { boxId } = this.findBoxByRaycast();
         
-        this._boxSelected.next(boxId); 
-        if (boxId) {
-             this._boxClicked.next(boxId);
+        const hits = this.getIntersectedBoxes();
+        
+        if (hits.length > 0) {
+            const hitIds = hits.map(h => h.boxId);
+            const currentIndex = hitIds.indexOf(this.selectedBoxId || '');
+            
+            // Cycle selection: Next box in the hit list, or first if none/last selected
+            const nextIndex = (currentIndex + 1) % hitIds.length;
+            const nextId = hitIds[nextIndex];
+
+            this._boxSelected.next(nextId);
+            this._boxClicked.next(nextId);
+        } else {
+            // Click on empty space
+            this._boxSelected.next(null);
         }
     }
   }
@@ -232,29 +248,36 @@ export class InteractionManager {
     };
   }
 
-  private findBoxByRaycast(): {
-    boxId: string | null;
-    boxObject: THREE.Object3D | null;
-    intersectionPoint: THREE.Vector3 | null;
-  } {
+  private getIntersectedBoxes(): {
+    boxId: string;
+    boxObject: THREE.Object3D;
+    intersectionPoint: THREE.Vector3;
+  }[] {
     const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+    const results: { boxId: string; boxObject: THREE.Object3D; intersectionPoint: THREE.Vector3 }[] = [];
+    const seenIds = new Set<string>();
 
     for (const intersect of intersects) {
       let object: THREE.Object3D | null = intersect.object;
       
       while (object) {
-        if (object.userData?.[USER_DATA_KEYS.BOX_ID]) {
-          return {
-            boxId: object.userData[USER_DATA_KEYS.BOX_ID],
-            boxObject: object,
-            intersectionPoint: intersect.point,
-          };
+        const id = object.userData?.[USER_DATA_KEYS.BOX_ID];
+        if (id) {
+          if (!seenIds.has(id)) {
+            seenIds.add(id);
+            results.push({
+              boxId: id,
+              boxObject: object,
+              intersectionPoint: intersect.point,
+            });
+          }
+          break;
         }
         object = object.parent;
       }
     }
 
-    return { boxId: null, boxObject: null, intersectionPoint: null };
+    return results;
   }
 
   private findMeshById(id: string): THREE.Object3D | null {
@@ -431,41 +454,10 @@ export class InteractionManager {
   }
 
   /**
-   * Check if two boxes collide (AABB collision detection)
-   */
-  private checkCollision(b1: { x: number; y: number; width: number; depth: number },
-                         b2: { x: number; y: number; width: number; depth: number }): boolean {
-    // Check if one box is to the left or right of the other
-    if (b1.x + b1.width <= b2.x || b2.x + b2.width <= b1.x) {
-      return false;
-    }
-    // Check if one box is above or below the other
-    if (b1.y + b1.depth <= b2.y || b2.y + b2.depth <= b1.y) {
-      return false;
-    }
-    return true;
-  }
-
-  /**
-   * Check if moving a box to a new position would cause collision with other boxes
-   */
-  private hasCollisionWithOthers(boxId: string, x: number, y: number, width: number, depth: number): boolean {
-    const testBox = { x, y, width, depth };
-    
-    for (const box of this.boxes) {
-      if (box.id === boxId) continue;
-      if (this.checkCollision(testBox, box)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  /**
-   * Validate if a position is valid (within bounds and no collisions)
+   * Validate if a position is valid (within bounds)
+   * Collisions are allowed (they will be flagged by validators)
    */
   private isValidPosition(boxId: string, x: number, y: number, width: number, depth: number): boolean {
-    return this.isWithinBounds(x, y, width, depth) && 
-           !this.hasCollisionWithOthers(boxId, x, y, width, depth);
+    return this.isWithinBounds(x, y, width, depth);
   }
 }

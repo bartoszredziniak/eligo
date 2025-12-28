@@ -10,6 +10,14 @@ export type MobileTab = 'canvas' | 'elements' | 'summary';
     <nav class="bg-white border-t border-gray-200 md:hidden z-50 safe-area-bottom">
       <div class="flex justify-around items-center h-14">
         <button
+          (click)="menuClicked.emit()"
+          class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[60px] text-gray-500"
+        >
+          <i class="pi pi-bars text-xl mb-0.5"></i>
+          <span class="text-[10px] font-medium">Menu</span>
+        </button>
+
+        <button
           (click)="tabChange.emit('canvas')"
           class="flex flex-col items-center justify-center flex-1 h-full transition-colors min-w-[60px]"
           [class]="activeTab() === 'canvas' ? 'text-primary-600' : 'text-gray-500'"
@@ -51,4 +59,5 @@ export type MobileTab = 'canvas' | 'elements' | 'summary';
 export class MobileBottomNav {
   activeTab = input.required<MobileTab>();
   tabChange = output<MobileTab>();
+  menuClicked = output<void>();
 }

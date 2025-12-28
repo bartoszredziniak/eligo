@@ -13,6 +13,7 @@ import { HelpDialogComponent } from '../../components/help-dialog/help-dialog.co
 import { RestoreConfigDialogComponent } from '../../components/restore-config-dialog/restore-config-dialog.component';
 import { MobileBottomNav } from '../../../../shared/ui/mobile-bottom-nav/mobile-bottom-nav';
 import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mobile-summary-bar';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'eligo-configurator-page',
@@ -38,6 +39,7 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
         (addBoxClicked)="canvasStage.addBox($event)"
         (helpClicked)="helpVisible.set(true)"
         (restoreClicked)="restoreVisible.set(true)"
+        (startOverClicked)="onStartOver()"
       />
 
       <!-- Left Sidebar -->
@@ -63,6 +65,7 @@ import { MobileSummaryBar } from '../../../../core/layout/mobile-summary-bar/mob
         bottomNav
         [activeTab]="activeMobileTab()"
         (tabChange)="onMobileTabChange($event)"
+        (menuClicked)="onStartOver()"
       />
 
       <!-- Mobile Summary View -->
@@ -96,6 +99,13 @@ export class ConfiguratorPage {
 
   onMobileTabChange(tab: MobileTab) {
     this.activeMobileTab.set(tab);
+  }
+
+  private router = inject(Router);
+
+  onStartOver() {
+    this.drawerService.clearBoxes();
+    this.router.navigate(['/']);
   }
 
   async onGenerateOrder(): Promise<void> {

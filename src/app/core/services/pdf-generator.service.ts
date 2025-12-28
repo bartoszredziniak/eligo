@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Box, DrawerConfig, BoxColor } from '../models/drawer.models';
 import { CostCalculatorService } from './cost-calculator.service';
 import { GridService } from './grid.service';
-import { APP_CONFIG } from '../config/app.config';
+import { APP_CONFIG } from '../config/app-config';
 
 @Injectable({
   providedIn: 'root',

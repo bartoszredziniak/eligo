@@ -7,7 +7,7 @@ import { Clipboard } from '@angular/cdk/clipboard';
 import { inject } from '@angular/core';
 import { MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
-import { APP_CONFIG } from '../../config/app.config';
+import { APP_CONFIG } from '../../config/app-config';
 
 @Component({
   selector: 'eligo-summary-bar',
