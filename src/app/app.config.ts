@@ -9,6 +9,7 @@ import { providePrimeNG } from 'primeng/config';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
+import {providePostHogErrorHandler} from './core/observability/posthog.error-handler';
 
 // Define custom preset with blue as primary color
 const EligoPreset = definePreset(Aura, {
@@ -44,5 +45,6 @@ export const appConfig: ApplicationConfig = {
       },
     }),
     ConfirmationService,
+    providePostHogErrorHandler()
   ],
 };
