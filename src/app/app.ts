@@ -1,7 +1,8 @@
-import { Component, signal } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
-import { ConfirmDialog } from 'primeng/confirmdialog';
+import {Component, inject,} from '@angular/core';
+import {RouterOutlet} from '@angular/router';
+import {ButtonModule} from 'primeng/button';
+import {ConfirmDialog} from 'primeng/confirmdialog';
+import {PosthogService} from './core/observability/posthog.service';
 
 @Component({
   selector: 'eligo-root',
@@ -13,5 +14,5 @@ import { ConfirmDialog } from 'primeng/confirmdialog';
   styleUrl: './app.css',
 })
 export class App {
-  protected readonly title = signal('eligo');
+  private postHog = inject(PosthogService)
 }

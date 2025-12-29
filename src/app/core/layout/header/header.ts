@@ -45,7 +45,15 @@ import { RouterLink } from '@angular/router';
 
         <!-- Desktop Buttons Wrapper -->
         <div class="hidden md:flex items-center gap-2">
-           <p-button
+          <p-button
+            icon="pi pi-question"
+            label="Ankieta"
+            [text]="true"
+            severity="secondary"
+            styleClass="w-full !justify-start !text-left px-4"
+            (onClick)="surveyClicked.emit()"
+          />
+          <p-button
             icon="pi pi-refresh"
             label="Zacznij od nowa"
             [text]="true"
@@ -99,6 +107,14 @@ import { RouterLink } from '@angular/router';
 
           <div class="flex flex-col gap-2">
             <p-button
+              icon="pi pi-question"
+              label="Ankieta"
+              [text]="true"
+              severity="secondary"
+              styleClass="w-full !justify-start !text-left px-4"
+              (onClick)="surveyClicked.emit(); menuVisible.set(false)"
+            />
+            <p-button
               icon="pi pi-refresh"
               label="Zacznij od nowa"
               [text]="true"
@@ -140,6 +156,7 @@ export class Header {
   helpClicked = output<void>();
   restoreClicked = output<void>();
   startOverClicked = output<void>();
+  surveyClicked = output<void>();
 
   menuVisible = signal(false);
 

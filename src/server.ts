@@ -6,11 +6,33 @@ import {
 } from '@angular/ssr/node';
 import express from 'express';
 import { join } from 'node:path';
+import {PostHog} from 'posthog-node';
+import {environment} from './environments/environment';
 
 const browserDistFolder = join(import.meta.dirname, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
+
+
+/**
+ * Extract distinct ID from PostHog cookie
+ */
+function getDistinctIdFromCookie(cookieHeader: string | undefined): string | null {
+  if (!cookieHeader) return null;
+
+  const cookieMatch = cookieHeader.match(`ph_${environment.posthogKey}_posthog=([^;]+)`);
+  if (cookieMatch) {
+    try {
+      const parsed = JSON.parse(decodeURIComponent(cookieMatch[1]));
+      return parsed?.distinct_id || null;
+    } catch (error) {
+      console.error('Error parsing PostHog cookie:', error);
+      return null;
+    }
+  }
+  return null;
+}
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -38,11 +60,33 @@ app.use(
 /**
  * Handle all other requests by rendering the Angular application.
  */
-app.use((req, res, next) => {
+app.use(async (req, res, next) => {
+
+  const { protocol, originalUrl, baseUrl, headers } = req;
+
+  const distinctId = getDistinctIdFromCookie(headers.cookie);
+  const client = new PostHog(
+    environment.posthogKey,
+    { host: environment.posthogHost }
+  )
+
+  if (distinctId) {
+    client.capture({
+      distinctId: distinctId,
+      event: 'test_ssr_event',
+      properties: {
+        message: 'Hello from Angular SSR!'
+      }
+    })
+  }
+
+
   angularApp
     .handle(req)
     .then((response) => (response ? writeResponseToNodeResponse(response, res) : next()))
     .catch(next);
+
+  await client.shutdown()
 });
 
 /**

@@ -37,6 +37,8 @@
     "@types/three": "^0.181.0",
     "express": "^5.1.0",
     "pdfmake": "^0.2.20",
+    "posthog-js": "^1.310.1",
+    "posthog-node": "^5.18.0",
     "primeicons": "^7.0.0",
     "primeng": "^20.3.0",
     "rxjs": "~7.8.0",
